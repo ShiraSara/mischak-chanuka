@@ -235,7 +235,7 @@ $('#btn-create').onclick = async () => {
   }
 };
 
-// ---------- מסך המשחק ----------
+// ---------- מסך המשחק – במה עם וילון ----------
 let gameId = null;
 let pollTimer = null;
 let tickTimer = null;
@@ -243,24 +243,35 @@ let state = null;
 let clockOffset = 0;
 let lastMainKey = '';
 let lastControlsKey = '';
+let sceneKey = ''; // lobby | q<index> | ended
+let transition = null; // טיימר של מעבר וילון פעיל
+let lastBeepSec = null;
+let soundOn = localStorage.getItem('seker_sound') !== 'off';
+
+const CURTAIN_MS = 1100; // משך סגירה/פתיחה של הווילון
+const HOLD_MS = 1300; // כמה זמן הווילון נשאר סגור עם "שאלה N"
 
 function stopPolling() {
   clearInterval(pollTimer);
   clearInterval(tickTimer);
+  clearTimeout(transition);
+  transition = null;
 }
 
 async function openGame(id) {
   gameId = id;
   if (!me) me = await api('/api/me');
   $('#dial-info').innerHTML = me.phoneInfo
-    ? `להצבעה מהטלפון התקשרו ל: <b class="ltr" style="direction:ltr;display:inline-block">${esc(me.phoneInfo)}</b>`
-    : 'להצבעה מהטלפון התקשרו למספר המשחק';
-  lastMainKey = lastControlsKey = '';
+    ? `☎ להצבעה התקשרו: <b>${esc(me.phoneInfo)}</b>`
+    : '☎ להצבעה התקשרו למספר המשחק';
+  lastMainKey = lastControlsKey = sceneKey = '';
+  $('#game-main').innerHTML = '';
+  setCurtain(true, true);
   show('game');
   stopPolling();
   await refresh();
   pollTimer = setInterval(refresh, 1000);
-  tickTimer = setInterval(tick, 250);
+  tickTimer = setInterval(tick, 200);
 }
 
 async function refresh() {
@@ -287,38 +298,98 @@ async function act(action) {
   }
 }
 
+// ---- וילון ----
+function setCurtain(closed, instant = false) {
+  const st = $('#stage');
+  if (instant) st.classList.add('no-anim');
+  st.classList.toggle('closed', closed);
+  if (instant) requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('no-anim')));
+}
+
+function curtainLabel(html) {
+  $('#curtain-label').innerHTML = html;
+}
+
+// מעבר סצנה: סוגרים וילון → מציגים כיתוב → מחליפים תוכן → פותחים
+function changeScene(label, onSwap) {
+  clearTimeout(transition);
+  const wasClosed = $('#stage').classList.contains('closed');
+  curtainLabel(label);
+  setCurtain(true);
+  transition = setTimeout(
+    () => {
+      onSwap();
+      setCurtain(false);
+      transition = null;
+    },
+    (wasClosed ? 0 : CURTAIN_MS) + HOLD_MS
+  );
+}
+
+function lobbyLabel(s) {
+  const g = s.game;
+  const conn = s.players.filter((p) => p.connected).length;
+  return `
+    <div class="marquee">משחק הסקר</div>
+    <div class="curtain-sub">מתקשרות ומצטרפות! קוד משחק: <b>${esc(g.pin)}</b></div>
+    <div class="lobby-chips">${s.players
+      .map((p) => `<span class="lchip ${p.connected ? 'on' : ''}"><b>${p.num}</b> ${esc(p.name)}</span>`)
+      .join('')}</div>
+    <div class="curtain-sub small">${conn} מתוך ${s.players.length} מחוברות · ${g.total} שאלות מחכות לכן</div>`;
+}
+
 function render() {
   const s = state;
   const g = s.game;
   $('#game-pin').textContent = g.pin;
+  renderControls();
+
+  const newScene = g.phase === 'lobby' ? 'lobby' : g.phase === 'ended' ? 'ended' : 'q' + g.qIndex;
+
+  if (newScene !== sceneKey) {
+    const first = sceneKey === '';
+    sceneKey = newScene;
+    lastMainKey = '';
+    lastBeepSec = null;
+    if (newScene === 'lobby') {
+      clearTimeout(transition);
+      $('#game-main').innerHTML = '';
+      curtainLabel(lobbyLabel(s));
+      setCurtain(true, first);
+      return;
+    }
+    if (newScene === 'ended') {
+      changeScene(`<div class="marquee">🎊 סוף המשחק 🎊</div><div class="curtain-sub">ועכשיו... הסיכום!</div>`, () => drawMain(true));
+      return;
+    }
+    changeScene(
+      `<div class="curtain-sub">שאלה</div><div class="marquee big">${g.qIndex + 1}</div><div class="curtain-sub">מתוך ${g.total}</div>`,
+      () => drawMain(true)
+    );
+    return;
+  }
+
+  if (newScene === 'lobby') return curtainLabel(lobbyLabel(s));
+  if (!transition) drawMain(false);
+}
+
+function drawMain(fresh) {
+  const s = state;
+  const g = s.game;
   let mainKey, html;
 
-  if (g.phase === 'lobby') {
-    const conn = s.players.filter((p) => p.connected).length;
-    html = `
-      <div class="q-counter">ממתינים למשתתפות · ${g.total} שאלות במשחק</div>
-      <div class="q-title">מתקשרות ומצטרפות! ☎</div>
-      <div class="note">כל אחת מתקשרת למספר שלמעלה ונשארת על הקו. מי שהטלפון שלה רשום – מזוהה אוטומטית. מי שלא – תקיש את קוד המשחק <b>${esc(g.pin)}</b> ואז את המספר שלה ברשימה.</div>
-      <div class="lobby-grid">
-        ${s.players
-          .map(
-            (p) => `<div class="lobby-p ${p.connected ? 'on' : ''}"><span class="n">${p.num}</span>${esc(p.name)}
-          <span class="st">${p.connected ? 'מחוברת' : p.hasPhone ? 'ממתינה' : 'ללא טלפון רשום'}</span></div>`
-          )
-          .join('')}
-      </div>
-      <div class="muted">${conn} מתוך ${s.players.length} מחוברות</div>`;
-    mainKey = html;
-  } else if (g.phase === 'question') {
+  if (g.phase === 'question') {
     const q = s.question;
     html = `
-      <div class="q-counter">שאלה ${g.qIndex + 1} מתוך ${g.total}</div>
+      <div class="q-head">
+        <div class="q-counter">שאלה ${g.qIndex + 1} מתוך ${g.total}</div>
+        ${g.settings.timerSec ? timerSvg() : ''}
+      </div>
       <div class="q-title">${esc(q.text)}</div>
-      <div class="options">${q.options.map((o) => `<div class="opt"><span class="n">${o.n}</span>${esc(o.label)}</div>`).join('')}</div>
+      <div class="options">${q.options.map((o) => `<div class="opt"><span class="n">${o.n}</span><span class="lbl">${esc(o.label)}</span></div>`).join('')}</div>
       <div class="status-line">
-        <span class="timer" id="timer"></span>
-        <span>הצביעו: <b>${s.votesCount}</b> מתוך ${s.players.length}</span>
-        <span class="muted">מקישים את המספר ואחריו סולמית #</span>
+        <span class="vote-count">הצביעו <b>${s.votesCount}</b> מתוך ${s.players.length}</span>
+        <span class="hint">מקישים את המספר ואחריו סולמית #</span>
       </div>
       ${
         g.settings.showVoters
@@ -334,14 +405,18 @@ function render() {
     mainKey = `results-${g.qIndex}-${JSON.stringify(res)}`;
     html = `
       <div class="q-counter">שאלה ${g.qIndex + 1} מתוך ${g.total} · ${s.votesCount} הצבעות</div>
-      <div class="q-title">${esc(s.question.text)}</div>
+      <div class="q-title small">${esc(s.question.text)}</div>
       <div class="winner-banner">${
-        winners.length === 0 ? 'אף אחת לא הצביעה 🤷‍♀️' : winners.length === 1 ? `🎉 ${esc(winners[0].label)} 🎉` : `תיקו! ${winners.map((w) => esc(w.label)).join(' · ')}`
+        winners.length === 0
+          ? 'אף אחת לא הצביעה 🤷‍♀️'
+          : winners.length === 1
+          ? `<span class="crown">👑</span><span class="wname">${esc(winners[0].label)}</span>`
+          : `<span class="crown">👑</span><span class="wname">תיקו! ${winners.map((w) => esc(w.label)).join(' · ')}</span>`
       }</div>
       <div class="bars">${res
         .filter((r) => r.count > 0)
         .map(
-          (r) => `<div class="bar-row ${r.count === top && top ? 'win' : ''} ${r.count ? '' : 'zero'}">
+          (r) => `<div class="bar-row ${r.count === top && top ? 'win' : ''}">
           <span class="lbl">${esc(r.label)}</span>
           <div class="bar-track"><div class="bar-fill" data-w="${(r.count / max) * 100}"></div></div>
           <span class="cnt">${r.count}</span></div>`
@@ -349,33 +424,106 @@ function render() {
         .join('')}</div>
       ${
         res.some((r) => r.count === 0)
-          ? `<p class="muted" style="margin-top:18px;font-size:1.1rem">ללא קולות: ${res.filter((r) => r.count === 0).map((r) => esc(r.label)).join(' · ')}</p>`
+          ? `<p class="no-votes">ללא קולות: ${res.filter((r) => r.count === 0).map((r) => esc(r.label)).join(' · ')}</p>`
           : ''
       }`;
-  } else {
+  } else if (g.phase === 'ended') {
     mainKey = 'ended' + JSON.stringify(s.summary);
     html = `
-      <div class="q-title">🎊 המשחק הסתיים! 🎊</div>
-      <h2>סיכום</h2>
+      <div class="q-title">🏆 הסיכום הגדול 🏆</div>
       <div class="summary">${(s.summary || [])
         .map(
-          (r) => `<div class="sum-row"><span>${esc(r.text)}</span><span>${
-            r.winners.length ? `<b>${r.winners.map(esc).join(' · ')}</b> (${r.top})` : '<span class="muted">אין הצבעות</span>'
+          (r, i) => `<div class="sum-row" style="animation-delay:${i * 0.08}s"><span>${esc(r.text)}</span><span>${
+            r.winners.length ? `<b>${r.winners.map(esc).join(' · ')}</b> <small>(${r.top})</small>` : '<small>אין הצבעות</small>'
           }</span></div>`
         )
         .join('')}</div>`;
-  }
+  } else return;
 
-  if (mainKey !== lastMainKey) {
-    const animate = g.phase === 'results' && !lastMainKey.startsWith(`results-${g.qIndex}-`);
-    $('#game-main').innerHTML = html;
-    const fills = document.querySelectorAll('.bar-fill');
-    if (animate) requestAnimationFrame(() => requestAnimationFrame(() => fills.forEach((f) => (f.style.width = f.dataset.w + '%'))));
-    else fills.forEach((f) => ((f.style.transition = 'none'), (f.style.width = f.dataset.w + '%')));
-    lastMainKey = mainKey;
-    tick();
+  if (mainKey === lastMainKey) return;
+  const isNewResults = g.phase === 'results' && !lastMainKey.startsWith(`results-${g.qIndex}-`);
+  $('#game-main').innerHTML = html;
+  $('#game-main').classList.toggle('enter', fresh);
+  const fills = document.querySelectorAll('.bar-fill');
+  if (isNewResults) {
+    requestAnimationFrame(() => requestAnimationFrame(() => fills.forEach((f) => (f.style.width = f.dataset.w + '%'))));
+    if ((s.results || [])[0]?.count) {
+      confetti();
+      sound('fanfare');
+    }
+  } else fills.forEach((f) => ((f.style.transition = 'none'), (f.style.width = f.dataset.w + '%')));
+  lastMainKey = mainKey;
+  tick();
+}
+
+// ---- טיימר עגול ----
+const R = 52;
+const CIRC = 2 * Math.PI * R;
+function timerSvg() {
+  return `<div class="timer-ring" id="timer">
+    <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="${R}"/><circle class="prog" id="timer-prog" cx="60" cy="60" r="${R}"
+      stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg>
+    <span class="num" id="timer-num"></span></div>`;
+}
+
+function tick() {
+  const el = $('#timer');
+  if (!el || !state) return;
+  const g = state.game;
+  if (!g.settings.timerSec || g.phase !== 'question') return;
+  const total = g.settings.timerSec * 1000;
+  const leftMs = Math.min(total, Math.max(0, g.qStartedAt + total - (Date.now() + clockOffset)));
+  const left = Math.ceil(leftMs / 1000);
+  $('#timer-prog').style.strokeDashoffset = String(CIRC * (1 - leftMs / total));
+  $('#timer-num').textContent = left > 0 ? left : '⏰';
+  el.classList.toggle('low', left <= 5 && left > 0);
+  el.classList.toggle('done', left === 0);
+  if (left !== lastBeepSec) {
+    if (lastBeepSec !== null && left <= 5 && left > 0) sound('tick');
+    if (lastBeepSec !== null && lastBeepSec > 0 && left === 0) sound('buzz');
+    lastBeepSec = left;
   }
-  renderControls();
+}
+
+// ---- צלילים (נוצרים בדפדפן, בלי קבצים) ----
+let audioCtx = null;
+function sound(kind) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    const note = (freq, start, dur, type = 'sine', vol = 0.2) => {
+      const o = audioCtx.createOscillator();
+      const gn = audioCtx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      gn.gain.setValueAtTime(vol, t + start);
+      gn.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.connect(gn).connect(audioCtx.destination);
+      o.start(t + start);
+      o.stop(t + start + dur);
+    };
+    if (kind === 'tick') note(880, 0, 0.12, 'square', 0.08);
+    if (kind === 'buzz') (note(220, 0, 0.5, 'sawtooth', 0.12), note(165, 0.05, 0.6, 'sawtooth', 0.1));
+    if (kind === 'fanfare') [523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.12, i === 3 ? 0.6 : 0.18, 'triangle', 0.15));
+  } catch {}
+}
+
+// ---- קונפטי ----
+function confetti() {
+  const box = $('#confetti');
+  const colors = ['#f6c453', '#e94f6a', '#9b5de5', '#00bbf9', '#00f5d4', '#ffffff'];
+  let h = '';
+  for (let i = 0; i < 90; i++) {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 0.6;
+    const dur = 2.2 + Math.random() * 1.8;
+    const size = 6 + Math.random() * 8;
+    const rot = Math.random() * 360;
+    h += `<i style="left:${left}%;width:${size}px;height:${size * 0.45}px;background:${colors[i % colors.length]};animation-delay:${delay}s;animation-duration:${dur}s;transform:rotate(${rot}deg)"></i>`;
+  }
+  box.innerHTML = h;
+  setTimeout(() => (box.innerHTML = ''), 4500);
 }
 
 function renderControls() {
@@ -383,7 +531,7 @@ function renderControls() {
   const last = g.qIndex + 1 >= g.total;
   const B = (a, label, cls = '') => `<button class="btn ${cls}" data-act="${a}">${label}</button>`;
   let h = '';
-  if (g.phase === 'lobby') h = B('start', 'התחלת המשחק ▶', 'primary big') + B('setup', 'חזרה להכנה', 'ghost');
+  if (g.phase === 'lobby') h = B('start', 'הרמת המסך ▶', 'primary big') + B('setup', 'חזרה להכנה', 'ghost');
   else if (g.phase === 'question')
     h = B('reveal', 'הצגת התוצאות', 'primary big') + (g.qIndex > 0 ? B('prev', '→ שאלה קודמת') : '') + B('next', 'דילוג') + B('end', 'סיום המשחק', 'danger');
   else if (g.phase === 'results')
@@ -391,33 +539,39 @@ function renderControls() {
       B('next', last ? 'סיום וסיכום 🎊' : 'השאלה הבאה ←', 'primary big') +
       (g.qIndex > 0 ? B('prev', '→ שאלה קודמת') : '') +
       B('reopen', 'פתיחה מחדש להצבעה') +
-      B('restart_question', 'איפוס ההצבעות לשאלה') +
+      B('restart_question', 'איפוס ההצבעות') +
       B('end', 'סיום המשחק', 'danger');
   else h = B('setup', 'משחק חדש', 'primary big');
-  h += B('fullscreen', '⛶ מסך מלא', 'ghost') + B('sim', '📱 סימולטור טלפון (בדיקה)', 'ghost');
-  const key = h;
-  if (key === lastControlsKey) return;
-  lastControlsKey = key;
+  h += B('sound', soundOn ? '🔊' : '🔇', 'ghost') + B('fullscreen', '⛶ מסך מלא', 'ghost') + B('sim', '📱 סימולטור', 'ghost');
+  if (h === lastControlsKey) return;
+  lastControlsKey = h;
   $('#controls').innerHTML = h;
 }
 
 $('#controls').addEventListener('click', (e) => {
-  const a = e.target.dataset.act;
+  const a = e.target.closest('[data-act]')?.dataset.act;
   if (!a) return;
   if (a === 'setup') {
     if (state.game.phase !== 'ended' && !confirm('לחזור למסך ההכנה? המשחק הנוכחי יישאר פתוח עד שתיצרי משחק חדש.')) return;
     stopPolling();
     return openSetup();
   }
+  if (a === 'sound') {
+    soundOn = !soundOn;
+    localStorage.setItem('seker_sound', soundOn ? 'on' : 'off');
+    if (soundOn) sound('tick');
+    return renderControls();
+  }
   if (a === 'fullscreen') return document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
   if (a === 'sim') return window.open(`/sim.html?game=${gameId}`, '_blank');
   if (a === 'end' && !confirm('לסיים את המשחק?')) return;
   if (a === 'restart_question' && !confirm('למחוק את כל ההצבעות לשאלה הזו?')) return;
+  sound('none'); // פותח את מערכת הקול של הדפדפן אחרי לחיצה
   act(a);
 });
 
 document.addEventListener('keydown', (e) => {
-  if ($('#view-game').hidden || !state) return;
+  if ($('#view-game').hidden || !state || e.target.matches('input, textarea')) return;
   if (e.key === ' ' || e.key === 'Enter') {
     const p = state.game.phase;
     e.preventDefault();
@@ -426,16 +580,6 @@ document.addEventListener('keydown', (e) => {
     else if (p === 'results') act('next');
   }
 });
-
-function tick() {
-  const el = $('#timer');
-  if (!el || !state) return;
-  const g = state.game;
-  if (!g.settings.timerSec || g.phase !== 'question') return (el.textContent = '');
-  const left = Math.max(0, Math.ceil((g.qStartedAt + g.settings.timerSec * 1000 - (Date.now() + clockOffset)) / 1000));
-  el.textContent = left > 0 ? `⏱ ${left}` : 'הזמן נגמר!';
-  el.classList.toggle('low', left <= 5);
-}
 
 // ---------- התחלה ----------
 (async function init() {

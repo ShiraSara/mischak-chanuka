@@ -67,7 +67,7 @@
       <h2><span class="step">3</span>הגדרות</h2>
       <div class="settings-grid">
         <label>טיימר לכל שאלה (שניות, 0 = בלי)
-          <input type="number" id="set-timer" value="0" min="0" max="600" style="width:90px" />
+          <input type="number" id="set-timer" value="30" min="0" max="600" style="width:90px" />
         </label>
         <label><input type="checkbox" id="set-shuffle" /> ערבוב סדר השאלות</label>
         <label><input type="checkbox" id="set-self" checked /> מותר להצביע לעצמך</label>
@@ -83,13 +83,22 @@
   </div>
 </section>
 
-<!-- ===== המשחק ===== -->
-<section id="view-game" class="game" hidden>
-  <div class="game-top">
-    <div class="dial-info" id="dial-info"></div>
-    <div class="pin-box">קוד משחק: <b id="game-pin" style="font-size:1.5rem;letter-spacing:3px"></b></div>
+<!-- ===== המשחק – במה ===== -->
+<section id="view-game" hidden>
+  <div class="stage closed" id="stage">
+    <div class="spot"></div>
+    <div class="floor"></div>
+    <div class="game-main" id="game-main"></div>
+    <div class="curtain left"></div>
+    <div class="curtain right"></div>
+    <div class="curtain-label" id="curtain-label"></div>
+    <div class="valance"></div>
+    <div class="confetti" id="confetti"></div>
+    <div class="stage-info">
+      <span id="dial-info"></span>
+      <span class="pin-box">קוד משחק <b id="game-pin"></b></span>
+    </div>
   </div>
-  <div class="game-main" id="game-main"></div>
   <div class="controls" id="controls"></div>
 </section>
 

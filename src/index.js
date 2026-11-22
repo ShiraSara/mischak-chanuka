@@ -2,7 +2,8 @@ import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
 
 const MAX_PLAYERS = 15;
-const READ_SEC = 20; // כמה שניות המערכת הטלפונית מחכה להקשה לפני שהיא שואלת שוב
+const READ_SEC = 20;
+const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו // כמה שניות המערכת הטלפונית מחכה להקשה לפני שהיא שואלת שוב
 
 // ---------- כלים כלליים ----------
 const now = () => Date.now();
@@ -237,14 +238,14 @@ async function gameAction(env, g, action) {
   switch (action) {
     case 'start':
       if (!total) return 'אין שאלות במשחק';
-      await setPhase(env, g, { status: 'live', q_index: 0, phase: 'question', q_started_at: now() });
+      await setPhase(env, g, { status: 'live', q_index: 0, phase: 'question', q_started_at: now() + REVEAL_MS });
       break;
     case 'reveal':
       await setPhase(env, g, { phase: 'results' });
       break;
     case 'next':
       if (g.q_index + 1 >= total) await setPhase(env, g, { phase: 'ended', status: 'ended' });
-      else await setPhase(env, g, { q_index: g.q_index + 1, phase: 'question', q_started_at: now() });
+      else await setPhase(env, g, { q_index: g.q_index + 1, phase: 'question', q_started_at: now() + REVEAL_MS });
       break;
     case 'prev':
       if (g.q_index > 0) await setPhase(env, g, { q_index: g.q_index - 1, phase: 'results', status: 'live' });
