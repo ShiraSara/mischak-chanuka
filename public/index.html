@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>משחק הסקר</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<!-- ===== כניסה עם קוד ===== -->
+<section id="view-login" class="center-page" hidden>
+  <div class="card" style="max-width:420px;width:100%;text-align:center">
+    <h1 class="brand-title">משחק הסקר</h1>
+    <p class="sub">הקישי את הקוד שקיבלת כדי להתחיל</p>
+    <form id="login-form">
+      <input id="login-code" type="text" class="ltr" placeholder="קוד כניסה" autocomplete="off" style="text-align:center;font-size:1.4rem;letter-spacing:3px" />
+      <p class="error" id="login-error"></p>
+      <button class="btn primary big" style="width:100%">כניסה</button>
+    </form>
+  </div>
+</section>
+
+<!-- ===== הכנת משחק ===== -->
+<section id="view-setup" hidden>
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <div>
+        <h1 class="brand-title">הכנת משחק</h1>
+        <p class="sub" id="setup-sub"></p>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="btn-resume" hidden>חזרה למשחק הפתוח</button>
+        <button class="btn ghost" id="btn-logout">יציאה</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">1</span>המשתתפות (עד 15)</h2>
+      <p class="muted" style="margin-top:0">כל משתתפת מקבלת מספר. בטלפון היא תקיש את המספר של מי שהיא בוחרת. טלפון: מומלץ, כדי שהמערכת תזהה אותה אוטומטית כשהיא מתקשרת.</p>
+      <div class="players-grid" id="players-grid"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn small" id="btn-clear-players">ניקוי הרשימה</button>
+        <span class="muted" id="players-count"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">2</span>השאלות</h2>
+      <div class="row q-tools">
+        <button class="btn small" id="btn-all">סימון הכל</button>
+        <button class="btn small" id="btn-none">ביטול הכל</button>
+        <button class="btn small" id="btn-random">בחירה אקראית של</button>
+        <input type="number" id="random-n" value="15" min="1" style="width:80px" />
+        <button class="btn small" id="btn-add-q">+ הוספת שאלה</button>
+        <span class="grow"></span>
+        <button class="btn small" id="btn-save-q">שמירת השאלות שלי</button>
+        <button class="btn small ghost" id="btn-reset-q">החזרת מאגר ברירת המחדל</button>
+      </div>
+      <p class="muted" id="q-count" style="margin:0 0 8px"></p>
+      <div class="q-list" id="q-list"></div>
+      <p class="muted" id="q-saved" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">3</span>הגדרות</h2>
+      <div class="settings-grid">
+        <label>טיימר לכל שאלה (שניות, 0 = בלי)
+          <input type="number" id="set-timer" value="0" min="0" max="600" style="width:90px" />
+        </label>
+        <label><input type="checkbox" id="set-shuffle" /> ערבוב סדר השאלות</label>
+        <label><input type="checkbox" id="set-self" checked /> מותר להצביע לעצמך</label>
+        <label><input type="checkbox" id="set-auto" /> הצגת תוצאות אוטומטית כשכולן הצביעו / הזמן נגמר</label>
+        <label><input type="checkbox" id="set-voters" checked /> להראות על המסך מי כבר הצביעה (בלי מה היא בחרה)</label>
+      </div>
+    </div>
+
+    <p class="error" id="setup-error"></p>
+    <div style="text-align:center">
+      <button class="btn primary big" id="btn-create">יצירת המשחק ←</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== המשחק ===== -->
+<section id="view-game" class="game" hidden>
+  <div class="game-top">
+    <div class="dial-info" id="dial-info"></div>
+    <div class="pin-box">קוד משחק: <b id="game-pin" style="font-size:1.5rem;letter-spacing:3px"></b></div>
+  </div>
+  <div class="game-main" id="game-main"></div>
+  <div class="controls" id="controls"></div>
+</section>
+
+<script src="/app.js"></script>
+</body>
+</html>

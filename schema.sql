@@ -1,0 +1,61 @@
+CREATE TABLE IF NOT EXISTS codes (
+  code TEXT PRIMARY KEY,
+  label TEXT,
+  created_at INTEGER,
+  expires_at INTEGER,          -- NULL = ללא תפוגה
+  max_games INTEGER,           -- NULL = ללא הגבלה
+  games_used INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1,
+  questions TEXT               -- JSON: מאגר השאלות האישי של הלקוחה (NULL = מאגר ברירת המחדל)
+);
+CREATE TABLE IF NOT EXISTS bank (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'names',   -- names | options
+  options TEXT,                         -- JSON array כשהסוג options
+  sort INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  code TEXT NOT NULL,
+  created_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS games (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL,
+  pin TEXT NOT NULL,
+  created_at INTEGER,
+  updated_at INTEGER,
+  status TEXT DEFAULT 'lobby',     -- lobby | live | ended
+  q_index INTEGER DEFAULT -1,
+  phase TEXT DEFAULT 'lobby',      -- lobby | question | results | ended
+  q_started_at INTEGER,
+  settings TEXT,                   -- JSON
+  questions TEXT                   -- JSON
+);
+CREATE TABLE IF NOT EXISTS players (
+  game_id INTEGER NOT NULL,
+  num INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  phone TEXT,
+  last_seen INTEGER,
+  PRIMARY KEY (game_id, num)
+);
+CREATE INDEX IF NOT EXISTS players_phone ON players(phone);
+CREATE TABLE IF NOT EXISTS calls (
+  call_id TEXT PRIMARY KEY,
+  game_id INTEGER,
+  num INTEGER,
+  stage TEXT,
+  step INTEGER DEFAULT 0,
+  last_key TEXT,
+  created_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS votes (
+  game_id INTEGER NOT NULL,
+  q_index INTEGER NOT NULL,
+  num INTEGER NOT NULL,
+  choice INTEGER NOT NULL,
+  at INTEGER,
+  PRIMARY KEY (game_id, q_index, num)
+);
