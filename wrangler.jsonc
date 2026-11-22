@@ -4,6 +4,7 @@
   "account_id": "62cdb4a11e36d4f17ba7894cf3b1b9e6",
   "preview_urls": false,
   "compatibility_date": "2026-11-01",
+  "vars": { "PHONE_INFO": "077-2269931" },
   "d1_databases": [
     { "binding": "DB", "database_name": "seker-game-db", "database_id": "f3b405ff-0351-45ec-a302-e33cf3dc562d" }
   ]
