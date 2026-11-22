@@ -46,3 +46,8 @@ npx wrangler d1 execute seker-game-db --local --file schema.sql
 npm run dev
 ```
 סיסמת הניהול המקומית נמצאת בקובץ `.dev.vars`.
+
+## צילומי מסך
+| מסך שאלה | תוצאות | סימולטור טלפון | ניהול |
+|---|---|---|---|
+| ![](docs/screenshots/4-question.png) | ![](docs/screenshots/5-results.png) | ![](docs/screenshots/3-sim.png) | ![](docs/screenshots/6-admin.png) |
