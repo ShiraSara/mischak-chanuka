@@ -1,4 +1,4 @@
-// אורז את קבצי public לתוך src/assets.js כדי שהשרת יגיש אותם ישירות
+// אורז את קבצי dist (תוצאת הבנייה של React) לתוך src/assets.js כדי שהשרת יגיש אותם ישירות
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
@@ -13,6 +13,6 @@ function walk(dir, base = '') {
     }
   }
 }
-walk('public');
+walk('dist');
 writeFileSync('src/assets.js', '// קובץ שנוצר אוטומטית – לא לערוך ידנית (npm run build)\nexport const ASSETS = ' + JSON.stringify(out) + ';\n');
 console.log('packed', Object.keys(out).length, 'files');

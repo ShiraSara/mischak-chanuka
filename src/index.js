@@ -652,6 +652,11 @@ function serveAsset(path) {
   if (!a) return new Response('לא נמצא', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
   const body = a.b64 ? Uint8Array.from(atob(a.body), (c) => c.charCodeAt(0)) : a.body;
   return new Response(body, {
-    headers: { 'content-type': a.type, 'cache-control': 'no-cache', 'x-robots-tag': 'noindex, nofollow' },
+    headers: {
+      'content-type': a.type,
+      // קבצים עם שם מגובב (assets/) לא משתנים לעולם – אפשר לשמור במטמון לתמיד
+      'cache-control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'x-robots-tag': 'noindex, nofollow',
+    },
   });
 }
