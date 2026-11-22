@@ -25,6 +25,9 @@ api_link=https://הכתובת-שלך/yemot
 אופציונלי, לאבטחה: מגדירים בשרת סוד `YEMOT_KEY` ומוסיפים לקישור `?key=הסוד`.
 לפני משחק אמיתי כדאי לבדוק עם 2–3 טלפונים, ולוודא מול ימות המשיח שהחבילה מאפשרת 15 שיחות במקביל.
 
+## כתובת האתר
+https://seker-game.seker-game.workers.dev  (ניהול: /admin.html)
+
 ## העלאה לאינטרנט (Cloudflare – חינם בהיקף כזה)
 ```
 npm install
@@ -32,7 +35,7 @@ npx wrangler login
 npx wrangler d1 create seker-game-db        # להעתיק את ה-database_id לקובץ wrangler.jsonc
 npx wrangler d1 execute seker-game-db --remote --file schema.sql
 npx wrangler secret put ADMIN_PASSWORD      # סיסמת הניהול שלך (לפחות 6 תווים)
-npx wrangler deploy
+npm run deploy      # אורז את הדפים לתוך הקוד ומעלה
 ```
 את מספר הטלפון שיוצג על המסך מגדירים במשתנה `PHONE_INFO` (בהגדרות ה-Worker ב-Cloudflare).
 
@@ -40,6 +43,6 @@ npx wrangler deploy
 ```
 npm install
 npx wrangler d1 execute seker-game-db --local --file schema.sql
-npx wrangler dev
+npm run dev
 ```
 סיסמת הניהול המקומית נמצאת בקובץ `.dev.vars`.

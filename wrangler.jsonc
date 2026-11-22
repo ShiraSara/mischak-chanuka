@@ -1,9 +1,10 @@
 {
   "name": "seker-game",
   "main": "src/index.js",
+  "account_id": "62cdb4a11e36d4f17ba7894cf3b1b9e6",
+  "preview_urls": false,
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*", "/yemot", "/yemot/*"] },
   "d1_databases": [
-    { "binding": "DB", "database_name": "seker-game-db", "database_id": "local-dev-placeholder" }
+    { "binding": "DB", "database_name": "seker-game-db", "database_id": "f3b405ff-0351-45ec-a302-e33cf3dc562d" }
   ]
 }

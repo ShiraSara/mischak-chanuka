@@ -2,8 +2,9 @@
   "name": "seker-game",
   "version": "1.0.0",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build": "node scripts/build-assets.mjs",
+    "dev": "node scripts/build-assets.mjs && wrangler dev",
+    "deploy": "node scripts/build-assets.mjs && wrangler deploy",
     "db:local": "wrangler d1 execute seker-game-db --local --file schema.sql"
   },
   "devDependencies": {

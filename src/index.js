@@ -1,4 +1,5 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
+import { ASSETS } from './assets.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20; // כמה שניות המערכת הטלפונית מחכה להקשה לפני שהיא שואלת שוב
@@ -468,7 +469,7 @@ export default {
         return await hostRoutes(req, env, path, method, c);
       }
 
-      return env.ASSETS.fetch(req);
+      return serveAsset(path);
     } catch (e) {
       console.error(e);
       if (path === '/yemot') return text(msgCmd([tts('אירעה תקלה נסו להתקשר שוב')]) + '&' + HANGUP);
@@ -642,4 +643,14 @@ async function adminRoutes(req, env, path, method) {
   }
 
   return err('לא נמצא', 404);
+}
+
+function serveAsset(path) {
+  if (path === '/' || path === '') path = '/index.html';
+  let a = ASSETS[path] || ASSETS[path + '.html'];
+  if (!a) return new Response('לא נמצא', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
+  const body = a.b64 ? Uint8Array.from(atob(a.body), (c) => c.charCodeAt(0)) : a.body;
+  return new Response(body, {
+    headers: { 'content-type': a.type, 'cache-control': 'no-cache', 'x-robots-tag': 'noindex, nofollow' },
+  });
 }
