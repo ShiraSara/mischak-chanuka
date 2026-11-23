@@ -27,6 +27,9 @@ export default function CurtainLabel({ label, state }) {
         <div className="curtain-sub small">
           {conn} מתוך {state.players.length} מחוברות · {g.total} שאלות מחכות לכן
         </div>
+        {g.settings.boardEvery > 0 && (
+          <div className="curtain-sub small">🏆 מי שמצביעה כמו הרוב – וגם מהר – צוברת נקודות!</div>
+        )}
       </>
     );
   }
@@ -36,6 +39,13 @@ export default function CurtainLabel({ label, state }) {
         <div className="k">שאלה</div>
         <div className="marquee big">{label.index + 1}</div>
         <div className="k">מתוך {label.total}</div>
+      </div>
+    );
+  if (label.kind === 'board')
+    return (
+      <div className="q-sticker">
+        <div className="marquee">🏆</div>
+        <div className="k" style={{ marginTop: 6, fontSize: '2.2rem', fontWeight: 900 }}>טבלת המובילות</div>
       </div>
     );
   if (label.kind === 'ended')

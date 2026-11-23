@@ -159,14 +159,14 @@ input.ltr { direction: ltr; text-align: right; }
 #view-game { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
 
 .stage {
-  position: relative; flex: 1; overflow: hidden; isolation: isolate; padding: 22px 28px 70px;
+  position: relative; flex: 1; overflow: hidden; isolation: isolate; padding: 84px 7% 74px;
   background-image: radial-gradient(color-mix(in srgb, var(--ink) 12%, transparent) 1.5px, transparent 1.5px);
   background-size: 22px 22px;
 }
 
 /* ה"מסך" – כרטיס כהה גדול */
 .game-main {
-  position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; min-height: calc(100vh - 190px);
+  position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; min-height: calc(100vh - 250px);
   background: var(--ink); color: #fff; border: 3px solid var(--ink); border-radius: 30px;
   box-shadow: 12px 12px 0 var(--c1); padding: 34px 44px 40px;
 }
@@ -177,33 +177,61 @@ input.ltr { direction: ltr; text-align: right; }
 .game-main.enter > *:nth-child(4) { animation-delay: .3s; }
 @keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
-/* "דלתות" צבעוניות במקום וילון – נסגרות בין שאלה לשאלה */
+/* וילון קטיפה בצבעי הערכה – נסגר בין שאלה לשאלה */
 .curtain {
-  position: absolute; top: 0; bottom: 0; width: 50.5%; z-index: 5;
-  background-color: var(--c2);
-  background-image: radial-gradient(color-mix(in srgb, var(--ink) 18%, transparent) 2px, transparent 2px);
-  background-size: 26px 26px;
-  transition: transform .9s cubic-bezier(.7, 0, .3, 1);
+  --v: var(--c1);
+  position: absolute; top: 0; bottom: 0; width: 51%; z-index: 5;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, .28), transparent 16%, transparent 82%, rgba(0, 0, 0, .35)),
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--v) 62%, #000) 0px,
+      var(--v) 20px,
+      color-mix(in srgb, var(--v) 78%, #fff) 36px,
+      var(--v) 54px,
+      color-mix(in srgb, var(--v) 62%, #000) 72px);
+  box-shadow: inset 0 0 0 3px var(--ink);
+  transition: transform 1s cubic-bezier(.65, 0, .35, 1);
 }
-.curtain.left { left: 0; border-right: 3px solid var(--ink); }
-.curtain.right { right: 0; border-left: 3px solid var(--ink); }
-/* כשהדלתות סגורות – בלי קו באמצע (שלא יחתוך את הטקסט) */
-.stage.closed .curtain { border-color: transparent; transition: transform .9s cubic-bezier(.7, 0, .3, 1), border-color 0s .9s; }
-.stage:not(.closed) .curtain.left { transform: translateX(-102%); }
-.stage:not(.closed) .curtain.right { transform: translateX(102%); }
+.curtain::after { /* שוליים בצבע המשני */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 18px;
+  background: repeating-linear-gradient(90deg, var(--c2) 0 8px, color-mix(in srgb, var(--c2) 70%, #000) 8px 12px);
+  border-top: 3px solid var(--ink);
+}
+.curtain.left { left: 0; }
+.curtain.right { right: 0; }
+.stage:not(.closed) .curtain.left { transform: translateX(-90%); }
+.stage:not(.closed) .curtain.right { transform: translateX(90%); }
 .stage.no-anim .curtain, .stage.no-anim .curtain-label { transition: none !important; }
 
+/* קישוט עליון (ולאנס) */
+.valance {
+  position: absolute; top: 0; left: 0; right: 0; height: 64px; z-index: 7; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--c1) 85%, #000) 0 39px, var(--ink) 40px 42px, transparent 43px) 0 22px / 84px 46px repeat-x,
+    linear-gradient(180deg, color-mix(in srgb, var(--c1) 70%, #000), var(--c1));
+  background-size: 84px 46px, 100% 30px;
+  background-repeat: repeat-x, no-repeat;
+}
+.valance::after {
+  content: ''; position: absolute; top: 26px; left: 0; right: 0; height: 6px; background: var(--c2);
+  border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
+}
+
 .curtain-label {
-  position: absolute; inset: 20px 4% 80px; z-index: 6; pointer-events: none;
+  position: absolute; inset: 70px 6% 80px; z-index: 6; pointer-events: none;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center;
   opacity: 0; transform: scale(.85) rotate(-4deg); transition: opacity .35s, transform .45s cubic-bezier(.2, 1.5, .4, 1);
 }
-.stage.closed .curtain-label { opacity: 1; transform: none; transition-delay: .45s; }
+.stage.closed .curtain-label { opacity: 1; transform: none; transition-delay: .5s; }
+/* טקסט שמופיע ישירות על הווילון */
+.curtain-label > .lobby-brand .marquee { color: var(--c2); text-shadow: 5px 5px 0 var(--ink); }
+.curtain-label > .lobby-brand .wave path { stroke: var(--c2); }
+.curtain-label > .curtain-sub { color: #fff; text-shadow: 2px 2px 0 var(--ink); }
 
 .marquee { font-family: var(--font-head); font-weight: 900; font-size: clamp(3rem, 8vw, 6.5rem); line-height: 1; color: var(--c1); letter-spacing: -2px; }
 .lobby-brand { display: inline-block; }
 .lobby-brand .wave { width: 100%; height: 18px; }
-.lobby-brand .wave path { stroke: var(--c1); stroke-width: 7; }
+.lobby-brand .wave path { stroke-width: 7; }
 .q-sticker {
   background: #fff; border: 3px solid var(--ink); border-radius: 26px; box-shadow: 10px 10px 0 var(--ink);
   padding: 24px 56px 30px; transform: rotate(-3deg);
@@ -345,4 +373,47 @@ input.ltr { direction: ltr; text-align: right; }
   .bar-row { grid-template-columns: 100px 1fr 40px; font-size: 1.1rem; }
   .timer-ring { width: 90px; height: 90px; }
   .timer-ring .num { font-size: 2rem; }
+}
+
+/* ================= טבלת מובילות ================= */
+.podium-wrap { display: grid; grid-template-columns: 1.4fr 1fr; gap: 34px; align-items: end; margin-top: 10px; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 16px; min-height: 330px; }
+.pod { flex: 1; max-width: 200px; text-align: center; animation: rise .7s both; }
+.pod-1 { animation-delay: .5s; }
+.pod-2 { animation-delay: .25s; }
+.pod-name { font-weight: 900; font-size: 1.7rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-pts { color: var(--c2); font-weight: 800; font-size: 1.15rem; margin: 2px 0 8px; }
+.pod-block {
+  border: 3px solid #fff; border-bottom: 0; border-radius: 18px 18px 0 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; padding-top: 12px; gap: 2px;
+}
+.pod-block span { font-size: 2.2rem; line-height: 1; }
+.pod-block b { font-weight: 900; font-size: 3.2rem; line-height: 1; color: var(--ink); }
+.pod-1 .pod-block { height: 220px; background: var(--c2); }
+.pod-2 .pod-block { height: 160px; background: var(--c4); }
+.pod-3 .pod-block { height: 115px; background: #fff; }
+.pod-1 .pod-name { font-size: 2.1rem; color: var(--c2); }
+
+.board-side { display: flex; flex-direction: column; gap: 14px; }
+.fast-card {
+  display: flex; align-items: center; gap: 14px; background: var(--c3); color: var(--on-c3);
+  border: 3px solid #fff; border-radius: 18px; padding: 14px 18px; box-shadow: 6px 6px 0 var(--c2); transform: rotate(-2deg);
+  animation: slam .7s cubic-bezier(.2, 1.5, .4, 1) both .8s;
+}
+.fast-card .bolt { font-size: 2.6rem; }
+.fast-card small { display: block; font-weight: 700; opacity: .9; }
+.fast-card b { display: block; font-weight: 900; font-size: 1.9rem; line-height: 1.1; }
+.rank-list { margin: 0; padding: 0 22px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 1.15rem; }
+.rank-list li { padding: 4px 4px; border-bottom: 1.5px dashed color-mix(in srgb, #fff 18%, transparent); }
+.rank-list li span { display: inline-block; min-width: 60%; font-weight: 700; }
+.rank-list li b { float: left; color: var(--c2); }
+.score-note { margin: 22px 0 0; color: color-mix(in srgb, #fff 55%, transparent); font-size: 1rem; text-align: center; }
+.podium-wrap.compact .podium { min-height: 260px; }
+.podium-wrap.compact .pod-1 .pod-block { height: 175px; }
+.podium-wrap.compact .pod-2 .pod-block { height: 140px; }
+.podium-wrap.compact .pod-3 .pod-block { height: 112px; }
+.sum-head { margin: 30px 0 12px; font-size: 1.4rem; font-weight: 900; }
+
+@media (max-width: 900px) {
+  .podium-wrap { grid-template-columns: 1fr; }
 }

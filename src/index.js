@@ -215,7 +215,9 @@ async function gameState(env, g) {
   if (g.phase === 'results' || g.phase === 'ended') {
     if (q) state.results = tally(opts, votes);
   }
+  if (g.phase === 'board') state.scores = await computeScores(env, g, players, g.q_index);
   if (g.phase === 'ended') {
+    state.scores = await computeScores(env, g, players, g.questions.length - 1);
     const { results: all } = await env.DB.prepare('SELECT q_index, num, choice FROM votes WHERE game_id = ?')
       .bind(g.id)
       .all();
@@ -233,30 +235,101 @@ async function gameState(env, g) {
   return state;
 }
 
+// ---------- ניקוד ----------
+// 100 נקודות למי שהצביעה כמו הרוב + בונוס מהירות עד 50 (לפי כמה מהר הצביעה מתחילת השאלה)
+const MAJORITY_POINTS = 100;
+const SPEED_POINTS = 50;
+
+async function computeScores(env, g, players, uptoIndex) {
+  const { results: votes } = await env.DB.prepare('SELECT q_index, num, choice, at FROM votes WHERE game_id = ? AND q_index <= ?')
+    .bind(g.id, uptoIndex)
+    .all();
+  const { results: rounds } = await env.DB.prepare('SELECT q_index, started_at FROM rounds WHERE game_id = ?').bind(g.id).all();
+  const startOf = new Map(rounds.map((r) => [r.q_index, r.started_at]));
+  const limitMs = (g.settings.timerSec || 30) * 1000;
+  const score = new Map(players.map((p) => [p.num, { num: p.num, name: p.name, points: 0, hits: 0, times: [] }]));
+
+  for (let i = 0; i <= uptoIndex; i++) {
+    const qv = votes.filter((v) => v.q_index === i);
+    if (!qv.length) continue;
+    const t = tally(optionsFor(g.questions[i], players), qv);
+    const top = t[0]?.count || 0;
+    const winners = new Set(t.filter((o) => o.count === top).map((o) => o.n));
+    const start = startOf.get(i);
+    for (const v of qv) {
+      const s = score.get(v.num);
+      if (!s) continue;
+      const ms = start ? Math.max(0, v.at - start) : null;
+      if (ms !== null) s.times.push(ms);
+      if (winners.has(v.choice)) {
+        s.hits += 1;
+        s.points += MAJORITY_POINTS;
+      }
+      if (ms !== null) s.points += Math.round(SPEED_POINTS * Math.max(0, 1 - ms / limitMs));
+    }
+  }
+  const list = [...score.values()].map((s) => ({
+    num: s.num,
+    name: s.name,
+    points: s.points,
+    hits: s.hits,
+    answered: s.times.length,
+    avgSec: s.times.length ? Math.round(s.times.reduce((a, b) => a + b, 0) / s.times.length / 100) / 10 : null,
+  }));
+  list.sort((a, b) => b.points - a.points || (a.avgSec ?? 999) - (b.avgSec ?? 999));
+  const fastest = list.filter((s) => s.avgSec !== null).sort((a, b) => a.avgSec - b.avgSec)[0] || null;
+  return { ranking: list, fastest, rounds: uptoIndex + 1 };
+}
+
+async function markRound(env, g, qIndex, startedAt, replace = false) {
+  await env.DB.prepare(`INSERT OR ${replace ? 'REPLACE' : 'IGNORE'} INTO rounds (game_id, q_index, started_at) VALUES (?, ?, ?)`)
+    .bind(g.id, qIndex, startedAt)
+    .run();
+}
+
 async function gameAction(env, g, action) {
   const total = g.questions.length;
+  const every = Number(g.settings.boardEvery) || 0;
   switch (action) {
-    case 'start':
+    case 'start': {
       if (!total) return 'אין שאלות במשחק';
-      await setPhase(env, g, { status: 'live', q_index: 0, phase: 'question', q_started_at: now() + REVEAL_MS });
+      const t = now() + REVEAL_MS;
+      await setPhase(env, g, { status: 'live', q_index: 0, phase: 'question', q_started_at: t });
+      await markRound(env, g, 0, t);
       break;
+    }
     case 'reveal':
       await setPhase(env, g, { phase: 'results' });
       break;
-    case 'next':
-      if (g.q_index + 1 >= total) await setPhase(env, g, { phase: 'ended', status: 'ended' });
-      else await setPhase(env, g, { q_index: g.q_index + 1, phase: 'question', q_started_at: now() + REVEAL_MS });
+    case 'next': {
+      if (g.q_index + 1 >= total) {
+        await setPhase(env, g, { phase: 'ended', status: 'ended' });
+        break;
+      }
+      // כל כמה שאלות – טבלת מובילות לפני השאלה הבאה
+      if (g.phase === 'results' && every && (g.q_index + 1) % every === 0) {
+        await setPhase(env, g, { phase: 'board' });
+        break;
+      }
+      const t = now() + REVEAL_MS;
+      await setPhase(env, g, { q_index: g.q_index + 1, phase: 'question', q_started_at: t });
+      await markRound(env, g, g.q_index, t);
       break;
+    }
     case 'prev':
-      if (g.q_index > 0) await setPhase(env, g, { q_index: g.q_index - 1, phase: 'results', status: 'live' });
+      if (g.phase === 'board') await setPhase(env, g, { phase: 'results' });
+      else if (g.q_index > 0) await setPhase(env, g, { q_index: g.q_index - 1, phase: 'results', status: 'live' });
       break;
     case 'reopen':
       await setPhase(env, g, { phase: 'question', q_started_at: now(), status: 'live' });
       break;
-    case 'restart_question':
+    case 'restart_question': {
       await env.DB.prepare('DELETE FROM votes WHERE game_id = ? AND q_index = ?').bind(g.id, g.q_index).run();
-      await setPhase(env, g, { phase: 'question', q_started_at: now(), status: 'live' });
+      const t = now();
+      await setPhase(env, g, { phase: 'question', q_started_at: t, status: 'live' });
+      await markRound(env, g, g.q_index, t, true);
       break;
+    }
     case 'end':
       await setPhase(env, g, { phase: 'ended', status: 'ended' });
       break;
@@ -497,6 +570,7 @@ async function hostRoutes(req, env, path, method, c) {
       allowSelfVote: s.allowSelfVote !== false,
       autoReveal: !!s.autoReveal,
       showVoters: s.showVoters !== false,
+      boardEvery: Math.max(0, Math.min(20, Number(s.boardEvery) || 0)),
     };
     // קוד משחק (PIN) ייחודי בין המשחקים הפעילים
     let pin;

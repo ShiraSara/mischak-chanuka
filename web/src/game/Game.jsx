@@ -6,12 +6,17 @@ import QuestionView from './QuestionView.jsx';
 import ResultsView from './ResultsView.jsx';
 import SummaryView from './SummaryView.jsx';
 import Controls from './Controls.jsx';
+import BoardView from './BoardView.jsx';
 
 const CURTAIN_MS = 1100; // משך סגירת הווילון
 const HOLD_MS = 1300; // כמה זמן הווילון נשאר סגור עם "שאלה N"
 
 // כל שאלה היא "סצנה". בין סצנות הווילון נסגר ונפתח.
-const sceneOf = (s) => (s.game.phase === 'lobby' ? 'lobby' : s.game.phase === 'ended' ? 'ended' : 'q' + s.game.qIndex);
+const sceneOf = (s) => {
+  const p = s.game.phase;
+  if (p === 'lobby' || p === 'ended') return p;
+  return (p === 'board' ? 'b' : 'q') + s.game.qIndex;
+};
 
 export default function Game({ gameId, me, onExit }) {
   const [state, setState] = useState(null);
@@ -68,7 +73,12 @@ export default function Game({ gameId, me, onExit }) {
       setShownScene('lobby');
       return;
     }
-    const label = scene === 'ended' ? { kind: 'ended' } : { kind: 'question', index: state.game.qIndex, total: state.game.total };
+    const label =
+      scene === 'ended'
+        ? { kind: 'ended' }
+        : scene.startsWith('b')
+        ? { kind: 'board' }
+        : { kind: 'question', index: state.game.qIndex, total: state.game.total };
     const wasClosed = closedRef.current;
     setCurtain({ closed: true, label });
     timerRef.current = setTimeout(() => {
@@ -127,6 +137,7 @@ export default function Game({ gameId, me, onExit }) {
     const phase = view.game.phase;
     if (phase === 'question') content = <QuestionView state={view} clockOffset={clockOffset} soundOn={soundOn} />;
     else if (phase === 'results') content = <ResultsView key={'r' + view.game.qIndex} state={view} soundOn={soundOn} />;
+    else if (phase === 'board') content = <BoardView state={view} soundOn={soundOn} />;
     else if (phase === 'ended') content = <SummaryView state={view} />;
   }
 
@@ -138,6 +149,7 @@ export default function Game({ gameId, me, onExit }) {
         </div>
         <div className="curtain left" />
         <div className="curtain right" />
+        <div className="valance" />
         <div className="curtain-label">
           <CurtainLabel label={curtain.label} state={state} />
         </div>

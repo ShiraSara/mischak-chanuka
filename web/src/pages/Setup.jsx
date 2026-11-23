@@ -71,6 +71,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
             allowSelfVote: settings.allowSelfVote,
             autoReveal: settings.autoReveal,
             showVoters: settings.showVoters,
+            boardEvery: Number(settings.boardEvery) || 0,
           },
         },
       });

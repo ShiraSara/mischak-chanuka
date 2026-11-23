@@ -27,6 +27,8 @@ export default function Controls({ game, soundOn, onAction }) {
       B('restart_question', 'איפוס ההצבעות'),
       B('end', 'סיום המשחק', 'danger'),
     ];
+  else if (game.phase === 'board')
+    main = [B('next', 'השאלה הבאה ←', 'primary big'), B('prev', '→ חזרה לתוצאות'), B('end', 'סיום המשחק', 'danger')];
   else main = [B('setup', 'משחק חדש', 'primary big')];
 
   return (

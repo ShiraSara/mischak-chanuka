@@ -1,4 +1,6 @@
-export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true };
+export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 3 };
+
+const BOARDS = [[0, 'בלי'], [3, 'כל 3'], [4, 'כל 4'], [5, 'כל 5']];
 
 import ThemePicker from '../lib/ThemePicker.jsx';
 
@@ -49,6 +51,19 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
             {TIMERS.map((t) => (
               <button key={t} className={Number(settings.timerSec) === t ? 'on' : ''} onClick={() => set('timerSec', t)}>
                 {t === 0 ? 'בלי' : t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="su-set-row">
+          <div>
+            <b>🏆 טבלת מובילות</b>
+            <small>ניקוד למי שמצביעה כמו הרוב ובונוס למהירות – ומדי כמה שאלות מציגים מי מובילה ומי הכי מהירה</small>
+          </div>
+          <div className="su-timer">
+            {BOARDS.map(([v, l]) => (
+              <button key={v} className={Number(settings.boardEvery) === v ? 'on' : ''} onClick={() => set('boardEvery', v)}>
+                {l}
               </button>
             ))}
           </div>

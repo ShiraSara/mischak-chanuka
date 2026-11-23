@@ -59,3 +59,10 @@ CREATE TABLE IF NOT EXISTS votes (
   at INTEGER,
   PRIMARY KEY (game_id, q_index, num)
 );
+-- מתי התחילה כל שאלה (לחישוב בונוס מהירות)
+CREATE TABLE IF NOT EXISTS rounds (
+  game_id INTEGER NOT NULL,
+  q_index INTEGER NOT NULL,
+  started_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, q_index)
+);
