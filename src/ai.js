@@ -2,6 +2,10 @@
 import { GoogleGenAI, ApiError } from '@google/genai';
 
 const DEFAULT_MODEL = 'gemini-3.8-flash'; // אפשר להחליף בלי קוד: משתנה GEMINI_MODEL ב-Cloudflare
+// דגמים חלופיים כשהראשי עמוס (אפשר להחליף: GEMINI_FALLBACK_MODELS, מופרדים בפסיק).
+// דגם שלא קיים בחשבון פשוט מדולג.
+const DEFAULT_FALLBACKS = 'gemini-flash-latest,gemini-3.5-flash-lite,gemini-flash-lite-latest';
+const ATTEMPTS_PER_MODEL = 3;
 const MAX_IMAGES = 3;
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // אחרי דחיסה בדפדפן התמונות קטנות בהרבה
 const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -72,39 +76,46 @@ export async function readQuestionsFromImages(env, images) {
     ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}),
   });
 
-  const request = {
-    model: env.GEMINI_MODEL || DEFAULT_MODEL,
-    contents: [{ role: 'user', parts }],
-    config: {
-      systemInstruction: SYSTEM,
-      responseMimeType: 'application/json',
-      responseJsonSchema: SCHEMA,
-      maxOutputTokens: 8192,
-    },
+  const config = {
+    systemInstruction: SYSTEM,
+    responseMimeType: 'application/json',
+    responseJsonSchema: SCHEMA,
+    maxOutputTokens: 8192,
   };
+  const primary = env.GEMINI_MODEL || DEFAULT_MODEL;
+  const models = [primary, ...String(env.GEMINI_FALLBACK_MODELS ?? DEFAULT_FALLBACKS).split(',').map((m) => m.trim())]
+    .filter((m, i, all) => m && all.indexOf(m) === i);
 
   let response;
-  for (let attempt = 1; ; attempt++) {
-    try {
-      response = await ai.models.generateContent(request);
-      break;
-    } catch (error) {
-      if (!(error instanceof ApiError)) throw error;
-      console.error('Gemini API error', error.status, error.message);
-      // תקלה זמנית אצל גוגל – ניסיון נוסף אחד
-      if (error.status >= 500 && attempt < 2) {
-        await new Promise((r) => setTimeout(r, 1500));
-        continue;
+  let lastError = null;
+  outer: for (const model of models) {
+    for (let attempt = 1; attempt <= ATTEMPTS_PER_MODEL; attempt++) {
+      try {
+        response = await ai.models.generateContent({ model, contents: [{ role: 'user', parts }], config });
+        break outer;
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        console.error('Gemini API error', model, error.status, error.message);
+        lastError = error;
+        const busy = error.status >= 500 || error.status === 429;
+        // דגם שלא קיים / לא זמין בחשבון – עוברים לחלופי
+        if (error.status === 404 && model !== primary) continue outer;
+        if (!busy) break outer;
+        // עומס – המתנה הולכת וגדלה, ואחרי 3 ניסיונות עוברים לדגם הבא
+        if (attempt < ATTEMPTS_PER_MODEL) await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
-      // פרטי השגיאה של גוגל – כדי שאפשר יהיה לאבחן
-      const detail = ` (קוד ${error.status}: ${String(error.message || '').replace(/\s+/g, ' ').slice(0, 160)})`;
-      if (error.status === 401 || error.status === 403 || (error.status === 400 && /api key/i.test(error.message)))
-        throw new AiError('מפתח ה-API לא תקין – צריך לבדוק אותו בהגדרות' + detail);
-      if (error.status === 429) throw new AiError('הגענו למכסה של Gemini כרגע – נסי שוב בעוד דקה' + detail);
-      if (error.status === 404) throw new AiError('דגם ה-AI שהוגדר לא קיים – צריך לעדכן את GEMINI_MODEL' + detail);
-      if (error.status === 400) throw new AiError('לא הצלחתי לקרוא את התמונה' + detail);
-      throw new AiError('שירות הקריאה לא זמין כרגע – נסי שוב עוד מעט' + detail);
     }
+  }
+
+  if (!response) {
+    const error = lastError;
+    const detail = error ? ` (קוד ${error.status}: ${String(error.message || '').replace(/\s+/g, ' ').slice(0, 160)})` : '';
+    if (!error || error.status >= 500) throw new AiError('הבינה המלאכותית של גוגל עמוסה כרגע – נסי שוב בעוד דקה-שתיים' + detail);
+    if (error.status === 401 || error.status === 403 || (error.status === 400 && /api key/i.test(error.message)))
+      throw new AiError('מפתח ה-API לא תקין – צריך לבדוק אותו בהגדרות' + detail);
+    if (error.status === 429) throw new AiError('הגענו למכסה של Gemini כרגע – נסי שוב בעוד דקה' + detail);
+    if (error.status === 404) throw new AiError('דגם ה-AI שהוגדר לא קיים – צריך לעדכן את GEMINI_MODEL' + detail);
+    throw new AiError('לא הצלחתי לקרוא את התמונה' + detail);
   }
 
   if (response.promptFeedback?.blockReason) throw new AiError('לא ניתן היה לקרוא את התמונה הזו');
