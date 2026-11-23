@@ -476,3 +476,20 @@ input.ltr { direction: ltr; text-align: right; }
 .btn.ghost.off { opacity: .35; text-decoration: line-through; }
 
 input[type=range] { accent-color: var(--c1); }
+
+/* פאנל הגדרות צדדי */
+.drawer-back { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--ink) 35%, transparent); animation: fade .2s; }
+@keyframes fade { from { opacity: 0; } }
+.drawer {
+  position: absolute; top: 0; bottom: 0; right: 0; width: min(560px, 94vw); overflow-y: auto;
+  background: var(--bg); border-left: 3px solid var(--ink); box-shadow: -8px 0 0 var(--c1);
+  padding: 18px 22px 40px; animation: slide-in .3s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes slide-in { from { transform: translateX(105%); } }
+.drawer-head { display: flex; align-items: center; gap: 12px; position: sticky; top: -18px; background: var(--bg); padding: 6px 0 12px; z-index: 2; }
+.drawer-head h2 { margin: 0; font-weight: 900; font-size: 1.6rem; }
+.drawer-head .muted { flex: 1; font-size: .9rem; }
+.drawer-sec { margin: 18px 0 4px; font-weight: 900; font-size: 1.15rem; }
+.drawer .su-set-row { padding: 12px 2px; }
+.drawer .styles-row { grid-template-columns: repeat(3, 1fr); }
+.drawer .su-timer button { padding: 5px 10px; min-width: 44px; }

@@ -15,7 +15,8 @@ function Switch({ checked, onChange }) {
 const SAMPLE = 'שאלה מספר אחת. מי הכי מצחיקה בחבורה?';
 
 // הגדרות מנגינה וקריין (נשמרות במחשב של המארחת)
-export default function AudioSettings() {
+// live = בתוך משחק פעיל: בלי כפתורי השמעה לדוגמה, והמנגינה של המשחק ממשיכה
+export default function AudioSettings({ live = false }) {
   const [p, setP] = useState(getPrefs);
   const [voices, setVoices] = useState(hebrewVoices);
   const [playing, setPlaying] = useState(null); // סגנון שמתנגן כרגע
@@ -25,10 +26,11 @@ export default function AudioSettings() {
   useEffect(() => onVoicesChanged(() => setVoices(hebrewVoices())), []);
   useEffect(
     () => () => {
+      if (live) return;
       music.setMode('off');
       stopAll();
     },
-    []
+    [live]
   );
 
   const preview = (style) => {
@@ -85,16 +87,18 @@ export default function AudioSettings() {
             <div key={st.id} className={`style-card ${p.musicStyle === st.id ? 'on' : ''}`} onClick={() => set({ musicStyle: st.id })}>
               <span className="ic">{st.icon}</span>
               <b>{st.name}</b>
-              <button
-                className="btn small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  set({ musicStyle: st.id });
-                  preview(st.id);
-                }}
-              >
-                {playing === st.id ? '⏹' : '▶'}
-              </button>
+              {!live && (
+                <button
+                  className="btn small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    set({ musicStyle: st.id });
+                    preview(st.id);
+                  }}
+                >
+                  {playing === st.id ? '⏹' : '▶'}
+                </button>
+              )}
             </div>
           ))}
         </div>

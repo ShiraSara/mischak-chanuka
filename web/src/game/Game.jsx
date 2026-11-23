@@ -7,6 +7,7 @@ import ResultsView from './ResultsView.jsx';
 import SummaryView from './SummaryView.jsx';
 import Controls from './Controls.jsx';
 import BoardView from './BoardView.jsx';
+import SettingsDrawer from './SettingsDrawer.jsx';
 import { useGameAudio } from './useGameAudio.js';
 import { setPrefs } from '../lib/prefs.js';
 import { stopAll } from '../lib/narrator.js';
@@ -27,6 +28,9 @@ export default function Game({ gameId, me, onExit }) {
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('seker_sound') !== 'off');
   const [curtain, setCurtainState] = useState({ closed: true, label: null });
   const [shownScene, setShownScene] = useState('');
+  const [drawer, setDrawer] = useState(false);
+  const drawerRef = useRef(false);
+  drawerRef.current = drawer;
 
   const closedRef = useRef(true);
   const targetRef = useRef('');
@@ -108,6 +112,7 @@ export default function Game({ gameId, me, onExit }) {
       if (next) playSound('tick');
       return;
     }
+    if (action === 'open_settings') return setDrawer(true);
     if (action === 'music') return setPrefs({ music: !audio.music });
     if (action === 'narrator') {
       if (audio.narrator) stopAll();
@@ -130,7 +135,7 @@ export default function Game({ gameId, me, onExit }) {
   useEffect(() => {
     const onKey = (e) => {
       const s = stateRef.current;
-      if (!s || e.target.matches('input, textarea, button')) return;
+      if (!s || drawerRef.current || e.target.matches('input, textarea, button, select')) return;
       if (e.key !== ' ' && e.key !== 'Enter') return;
       e.preventDefault();
       const p = s.game.phase;
@@ -176,6 +181,21 @@ export default function Game({ gameId, me, onExit }) {
           )}
         </div>
       </div>
+      {drawer && state && (
+        <SettingsDrawer
+          game={state.game}
+          soundOn={soundOn}
+          onToggleSound={() => act('sound')}
+          onClose={() => setDrawer(false)}
+          onChange={async (patch) => {
+            try {
+              setState(await api(`/api/games/${gameId}/action`, { method: 'POST', body: { action: 'settings', settings: patch } }));
+            } catch (er) {
+              alert(er.message);
+            }
+          }}
+        />
+      )}
       {state && <Controls game={state.game} soundOn={soundOn} audio={audio} onAction={act} clockOffset={clockOffset} />}
     </section>
   );

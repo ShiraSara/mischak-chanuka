@@ -49,6 +49,7 @@ export default function Controls({ game, soundOn, audio, onAction, clockOffset }
       </div>
       {main}
       {autoCtl}
+      {B('open_settings', '⚙️ הגדרות', '', 'הגדרות המשחק')}
       {B('music', '🎵', audio?.music ? 'ghost' : 'ghost off', audio?.music ? 'כיבוי מנגינה' : 'הפעלת מנגינה')}
       {B('narrator', '🎙️', audio?.narrator ? 'ghost' : 'ghost off', audio?.narrator ? 'כיבוי קריין' : 'הפעלת קריין')}
       {B('sound', soundOn ? '🔊' : '🔇', 'ghost', 'צלילי משחק')}

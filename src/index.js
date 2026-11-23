@@ -325,7 +325,21 @@ async function claimPhase(env, g) {
   return true;
 }
 
-async function gameAction(env, g, action) {
+// הגדרות משחק – ניקוי ואימות (גם ביצירה וגם בשינוי באמצע המשחק)
+function cleanSettings(s, base = {}) {
+  const v = { ...base, ...s };
+  return {
+    timerSec: Math.max(0, Math.min(600, Number(v.timerSec) || 0)),
+    allowSelfVote: v.allowSelfVote !== false,
+    autoReveal: !!v.autoReveal,
+    showVoters: v.showVoters !== false,
+    boardEvery: Math.max(0, Math.min(20, Number(v.boardEvery) || 0)),
+    autoPlay: !!v.autoPlay,
+    resultsSec: Math.max(3, Math.min(60, Number(v.resultsSec) || 8)),
+  };
+}
+
+async function gameAction(env, g, action, payload = {}) {
   const total = g.questions.length;
   const every = Number(g.settings.boardEvery) || 0;
   switch (action) {
@@ -377,6 +391,13 @@ async function gameAction(env, g, action) {
       const settings = { ...g.settings, autoPlay: action === 'auto_on' };
       // מתחילים לספור מחדש מרגע ההפעלה
       await setPhase(env, g, { settings: JSON.stringify(settings) });
+      g.settings = settings;
+      break;
+    }
+    // שינוי הגדרות באמצע המשחק (מהפאנל הצדדי)
+    case 'settings': {
+      const settings = cleanSettings(payload.settings || {}, g.settings);
+      await env.DB.prepare('UPDATE games SET settings = ? WHERE id = ?').bind(JSON.stringify(settings), g.id).run();
       g.settings = settings;
       break;
     }
@@ -653,16 +674,7 @@ async function hostRoutes(req, env, path, method, c) {
     for (const q of questions) {
       if (q.type === 'options' && q.options.length > 99) return err('יותר מדי תשובות');
     }
-    const s = b.settings || {};
-    const settings = {
-      timerSec: Math.max(0, Math.min(600, Number(s.timerSec) || 0)),
-      allowSelfVote: s.allowSelfVote !== false,
-      autoReveal: !!s.autoReveal,
-      showVoters: s.showVoters !== false,
-      boardEvery: Math.max(0, Math.min(20, Number(s.boardEvery) || 0)),
-      autoPlay: !!s.autoPlay,
-      resultsSec: Math.max(3, Math.min(60, Number(s.resultsSec) || 8)),
-    };
+    const settings = cleanSettings(b.settings || {});
     // קוד משחק (PIN) ייחודי בין המשחקים הפעילים
     let pin;
     for (let i = 0; i < 20; i++) {
@@ -696,8 +708,8 @@ async function hostRoutes(req, env, path, method, c) {
     if (!g || g.code !== c.code) return err('המשחק לא נמצא', 404);
     if (!m[2] && method === 'GET') return json(await gameState(env, g));
     if (m[2] === '/action' && method === 'POST') {
-      const { action } = await body(req);
-      const problem = await gameAction(env, g, action);
+      const { action, settings } = await body(req);
+      const problem = await gameAction(env, g, action, { settings });
       if (problem) return err(problem);
       return json(await gameState(env, g));
     }
