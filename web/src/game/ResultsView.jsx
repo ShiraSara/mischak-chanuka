@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Confetti from './Confetti.jsx';
 import { playSound } from '../lib/sound.js';
+import { resultsCaption } from './captions.js';
 
 // תוצאות: כתר למנצחת, עמודות שגדלות, קונפטי ותרועה
 export default function ResultsView({ state, soundOn }) {
@@ -43,6 +44,10 @@ export default function ResultsView({ state, soundOn }) {
           </span>
         )}
       </div>
+      {(() => {
+        const c = resultsCaption({ results: res, votes: state.votesCount, type: state.question.type, qIndex: g.qIndex });
+        return c ? <div className="fun-caption results">{c}</div> : null;
+      })()}
       <div className="bars">
         {res
           .filter((r) => r.count > 0)

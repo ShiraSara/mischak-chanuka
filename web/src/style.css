@@ -502,3 +502,11 @@ input[type=range] { accent-color: var(--c1); }
 .topic-kicker { background: var(--c2); color: var(--ink); font-weight: 800; border-radius: 10px; padding: 3px 14px; font-size: 1.1rem; letter-spacing: 1px; }
 .topic-name { font-weight: 900; font-size: clamp(3rem, 7vw, 5.5rem); line-height: 1.1; color: #fff; }
 .topic-q { color: color-mix(in srgb, #fff 70%, transparent); font-weight: 700; font-size: 1.2rem; }
+
+/* כיתובים חמודים */
+.fun-caption {
+  display: inline-block; margin: 14px 0 0; background: var(--c4); color: var(--ink); font-weight: 900; font-size: 1.35rem;
+  border: 2.5px solid #fff; border-radius: 14px; padding: 6px 18px; transform: rotate(-2deg);
+  animation: slam .6s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.fun-caption.results { display: table; margin: -10px auto 20px; background: var(--c3); color: var(--on-c3); }

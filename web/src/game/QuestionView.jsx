@@ -1,4 +1,20 @@
+import { useEffect, useState } from 'react';
 import TimerRing from './TimerRing.jsx';
+import { questionCaption } from './captions.js';
+
+// כיתוב מתחלף לפי הזמן שנשאר ומי הצביעה
+function Caption({ game, votes, total, clockOffset }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, []);
+  const sec = game.settings.timerSec;
+  const leftRatio = sec ? Math.max(0, game.qStartedAt + sec * 1000 - (now + clockOffset)) / (sec * 1000) : null;
+  const text = questionCaption({ leftRatio, votes, total, qIndex: game.qIndex });
+  return text ? <div className="fun-caption" key={text}>{text}</div> : null;
+}
+
 
 export default function QuestionView({ state, clockOffset, soundOn }) {
   const g = state.game;
@@ -22,6 +38,7 @@ export default function QuestionView({ state, clockOffset, soundOn }) {
           </div>
         ))}
       </div>
+      <Caption game={g} votes={state.votesCount} total={state.players.length} clockOffset={clockOffset} />
       <div className="status-line">
         <span className="vote-count">
           הצביעו <b>{state.votesCount}</b> מתוך {state.players.length}
