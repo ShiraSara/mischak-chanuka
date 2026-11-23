@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
 import CodesPanel from './CodesPanel.jsx';
 import BankPanel from './BankPanel.jsx';
+import '../pages/setup.css';
+import './admin.css';
 
 export default function AdminApp() {
   const [pw, setPw] = useState(() => sessionStorage.getItem('seker_admin') || '');
@@ -41,21 +43,28 @@ export default function AdminApp() {
     );
 
   return (
-    <div className="wrap">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 className="brand-title">ניהול משחק הסקר</h1>
-        <button
-          className="btn ghost"
-          onClick={() => {
-            sessionStorage.removeItem('seker_admin');
-            location.reload();
-          }}
-        >
-          יציאה
-        </button>
-      </div>
-      <CodesPanel pw={pw} />
-      <BankPanel pw={pw} />
+    <div className="su">
+      <header className="su-hero">
+        <div className="su-hero-in">
+          <div>
+            <h1>🔑 ניהול משחק הסקר</h1>
+            <p>קודים ללקוחות ומאגר השאלות</p>
+          </div>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              sessionStorage.removeItem('seker_admin');
+              location.reload();
+            }}
+          >
+            יציאה
+          </button>
+        </div>
+      </header>
+      <main className="su-body ad-body">
+        <CodesPanel pw={pw} />
+        <BankPanel pw={pw} />
+      </main>
     </div>
   );
 }

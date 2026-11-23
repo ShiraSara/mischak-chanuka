@@ -34,13 +34,12 @@ export default function BankPanel({ pw }) {
   };
 
   return (
-    <div className="card">
-      <h2>מאגר השאלות הכללי</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
+    <div className="su-card">
+      <div className="su-card-head"><div><h2>מאגר השאלות הכללי</h2><p>
         זה המאגר שכל לקוחה רואה כברירת מחדל. שורה לכל שאלה. לשאלה עם תשובות קבועות (לא שמות) כתבי בסוף:{' '}
         <code>| תשובה1, תשובה2, תשובה3</code>
-      </p>
-      <textarea rows="20" style={{ fontSize: '1rem', lineHeight: 1.7 }} value={text} onChange={(e) => setText(e.target.value)} />
+      </p></div></div>
+      <textarea rows="16" style={{ fontSize: '1rem', lineHeight: 1.7 }} value={text} onChange={(e) => setText(e.target.value)} />
       <div className="row" style={{ marginTop: 10 }}>
         <button className="btn primary" onClick={save}>שמירת המאגר</button>
         <span className="muted">{msg}</span>
