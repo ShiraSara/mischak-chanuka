@@ -15,8 +15,8 @@ export default function QuestionView({ state, clockOffset, soundOn }) {
       </div>
       <div className="q-title">{q.text}</div>
       <div className="options">
-        {q.options.map((o) => (
-          <div className="opt" key={o.n}>
+        {q.options.map((o, i) => (
+          <div className={`opt tone${i % 4}`} key={o.n}>
             <span className="n">{o.n}</span>
             <span className="lbl">{o.label}</span>
           </div>

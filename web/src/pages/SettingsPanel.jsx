@@ -1,5 +1,7 @@
 export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true };
 
+import ThemePicker from '../lib/ThemePicker.jsx';
+
 const TIMERS = [0, 15, 20, 30, 45, 60, 90];
 
 function Switch({ checked, onChange }) {
@@ -50,6 +52,13 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
               </button>
             ))}
           </div>
+        </div>
+        <div className="su-set-row">
+          <div>
+            <b>🎨 צבעי המשחק</b>
+            <small>אפשר להחליף גם באמצע המשחק</small>
+          </div>
+          <ThemePicker />
         </div>
         {row('shuffle', '🔀 ערבוב סדר השאלות', 'השאלות יופיעו בסדר אקראי')}
         {row('allowSelfVote', '🙋‍♀️ מותר להצביע לעצמך', 'כשהתשובות הן שמות – אפשר לבחור גם בעצמך')}

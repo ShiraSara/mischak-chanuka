@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
-const COLORS = ['#f6c453', '#e94f6a', '#9b5de5', '#00bbf9', '#00f5d4', '#ffffff'];
+// צבעי הקונפטי לפי ערכת הצבעים שנבחרה
+const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', '#ffffff'];
 
 // גשם קונפטי חד-פעמי (מוצג כל עוד הרכיב קיים)
 export default function Confetti() {

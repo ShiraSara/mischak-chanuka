@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api, shuffle, withId } from '../lib/api.js';
 import PlayersEditor, { emptyPlayers } from './PlayersEditor.jsx';
 import QuestionsEditor from './QuestionsEditor.jsx';
 import SettingsPanel, { DEFAULT_SETTINGS } from './SettingsPanel.jsx';
 import './setup.css';
+import { BRAND } from '../lib/theme.js';
+import Wave from '../lib/Wave.jsx';
+import ThemePicker from '../lib/ThemePicker.jsx';
 
 const STEPS = [
   { title: 'משתתפות', icon: '👥' },
@@ -89,33 +92,42 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
       <header className="su-hero">
         <div className="su-hero-in">
           <div>
-            <h1>🎭 הכנת משחק חדש</h1>
+            <span className="sticker">{BRAND}</span>
+            <h1>
+              הכנת <em>משחק</em> חדש
+            </h1>
+            <Wave />
             <p>{sub}</p>
           </div>
-          <div className="row">
-            {hasOpenGame && (
-              <button className="btn ghost" onClick={onResume}>
-                ← חזרה למשחק הפתוח
+          <div className="su-hero-side">
+            <div className="row">
+              {hasOpenGame && (
+                <button className="btn small" onClick={onResume}>
+                  ← חזרה למשחק הפתוח
+                </button>
+              )}
+              <button className="btn ghost" onClick={onLogout}>
+                יציאה
               </button>
-            )}
-            <button className="btn ghost" onClick={onLogout}>
-              יציאה
-            </button>
+            </div>
+            <span className="lbl">🎨 הצבעים שלך</span>
+            <ThemePicker compact />
           </div>
         </div>
       </header>
 
       <nav className="su-steps">
         {STEPS.map((s, i) => (
-          <button key={i} className={`su-step ${step === i ? 'active' : ''} ${step > i ? 'done' : ''}`} onClick={() => go(i)}>
-            <span className="dot">{step > i ? '✓' : i + 1}</span>
-            <span>
+          <Fragment key={i}>
+            {i > 0 && <span className="su-line" />}
+            <button className={`su-step ${step === i ? 'active' : ''} ${step > i ? 'done' : ''}`} onClick={() => go(i)}>
+              <span className="dot">{step > i ? '✓' : i + 1}</span>
               <b>
                 {s.icon} {s.title}
               </b>
               <small>{stepInfo[i]}</small>
-            </span>
-          </button>
+            </button>
+          </Fragment>
         ))}
       </nav>
 
@@ -142,8 +154,8 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
               הבא ←
             </button>
           ) : (
-            <button className="btn gold big" onClick={create} disabled={busy}>
-              {busy ? 'יוצרת…' : '✨ יצירת המשחק'}
+            <button className="btn primary big" onClick={create} disabled={busy}>
+              {busy ? 'יוצרת…' : 'יצירת המשחק 🎉'}
             </button>
           )}
         </div>

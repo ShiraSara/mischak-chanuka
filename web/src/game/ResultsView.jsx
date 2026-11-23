@@ -33,21 +33,21 @@ export default function ResultsView({ state, soundOn }) {
       <div className="q-title small">{state.question.text}</div>
       <div className="winner-banner">
         {winners.length === 0 ? (
-          'אף אחת לא הצביעה 🤷‍♀️'
+          <span className="no-winner">אף אחת לא הצביעה 🤷‍♀️</span>
         ) : (
-          <>
+          <span className="winner-sticker">
             <span className="crown">👑</span>
             <span className="wname">
               {winners.length === 1 ? winners[0].label : 'תיקו! ' + winners.map((w) => w.label).join(' · ')}
             </span>
-          </>
+          </span>
         )}
       </div>
       <div className="bars">
         {res
           .filter((r) => r.count > 0)
-          .map((r) => (
-            <div key={r.n} className={`bar-row ${r.count === top ? 'win' : ''}`}>
+          .map((r, i) => (
+            <div key={r.n} className={`bar-row tone${i % 4} ${r.count === top ? 'win' : ''}`}>
               <span className="lbl">{r.label}</span>
               <div className="bar-track">
                 <div className="bar-fill" style={{ width: grown ? (r.count / max) * 100 + '%' : 0 }} />

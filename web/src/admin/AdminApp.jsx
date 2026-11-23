@@ -4,6 +4,9 @@ import CodesPanel from './CodesPanel.jsx';
 import BankPanel from './BankPanel.jsx';
 import '../pages/setup.css';
 import './admin.css';
+import { BRAND } from '../lib/theme.js';
+import Wave from '../lib/Wave.jsx';
+import ThemePicker from '../lib/ThemePicker.jsx';
 
 export default function AdminApp() {
   const [pw, setPw] = useState(() => sessionStorage.getItem('seker_admin') || '');
@@ -27,17 +30,17 @@ export default function AdminApp() {
     return (
       <section className="center-page">
         <form
-          className="card"
-          style={{ maxWidth: 380, width: '100%', textAlign: 'center' }}
+          className="login-card"
           onSubmit={(e) => {
             e.preventDefault();
             tryLogin(input).catch((er) => setError(er.message));
           }}
         >
-          <h1 className="brand-title" style={{ fontSize: '1.8rem' }}>ניהול</h1>
+          <span className="sticker">{BRAND}</span>
+          <h1 className="brand" style={{ fontSize: '2.6rem', margin: '16px 0 18px' }}>ניהול</h1>
           <input type="password" placeholder="סיסמת ניהול" value={input} onChange={(e) => setInput(e.target.value)} />
           <p className="error">{error}</p>
-          <button className="btn primary" style={{ width: '100%' }}>כניסה</button>
+          <button className="btn primary big" style={{ width: '100%' }}>כניסה</button>
         </form>
       </section>
     );
@@ -47,18 +50,24 @@ export default function AdminApp() {
       <header className="su-hero">
         <div className="su-hero-in">
           <div>
-            <h1>🔑 ניהול משחק הסקר</h1>
-            <p>קודים ללקוחות ומאגר השאלות</p>
+            <span className="sticker">{BRAND}</span>
+            <h1>
+              <em>ניהול</em> קודים ושאלות
+            </h1>
+            <Wave />
           </div>
-          <button
-            className="btn ghost"
-            onClick={() => {
-              sessionStorage.removeItem('seker_admin');
-              location.reload();
-            }}
-          >
-            יציאה
-          </button>
+          <div className="su-hero-side">
+            <button
+              className="btn ghost"
+              onClick={() => {
+                sessionStorage.removeItem('seker_admin');
+                location.reload();
+              }}
+            >
+              יציאה
+            </button>
+            <ThemePicker compact />
+          </div>
         </div>
       </header>
       <main className="su-body ad-body">

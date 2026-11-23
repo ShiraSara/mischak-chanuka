@@ -120,7 +120,7 @@ export default function CodesPanel({ pw }) {
             <Pick value={form.maxGames} options={GAMES} unit="משחקים" onChange={(v) => set('maxGames', v)} />
           </div>
           <div className="ad-submit">
-            <button className="btn gold big">✨ יצירת קוד</button>
+            <button className="btn primary big">יצירת קוד ✨</button>
           </div>
         </form>
         <p className="error">{error}</p>

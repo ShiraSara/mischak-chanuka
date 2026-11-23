@@ -68,7 +68,7 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
             נבחרו ({onCount})
           </button>
         </div>
-        <button className="btn gold" onClick={add}>
+        <button className="btn primary" onClick={add}>
           + שאלה חדשה
         </button>
       </div>
@@ -161,7 +161,7 @@ function QuestionRow({ q, onChange, onRemove }) {
         </div>
       </div>
       <button className="su-x" title="מחיקת השאלה" onClick={onRemove}>
-        🗑
+        🗑️
       </button>
     </div>
   );

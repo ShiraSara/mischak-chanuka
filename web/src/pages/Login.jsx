@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { api, setToken } from '../lib/api.js';
+import { BRAND } from '../lib/theme.js';
+import Wave from '../lib/Wave.jsx';
 
 export default function Login({ onLogin }) {
   const [code, setCode] = useState('');
@@ -23,22 +25,23 @@ export default function Login({ onLogin }) {
 
   return (
     <section className="center-page">
-      <div className="card" style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
-        <h1 className="brand-title">משחק הסקר</h1>
+      <div className="login-card">
+        <span className="sticker">משחק קליקרים לחבורות</span>
+        <h1 className="brand" style={{ marginTop: 18 }}>{BRAND}</h1>
+        <Wave />
         <p className="sub">הקישי את הקוד שקיבלת כדי להתחיל</p>
         <form onSubmit={submit}>
           <input
             type="text"
-            className="ltr"
+            className="ltr code-input"
             placeholder="קוד כניסה"
             autoComplete="off"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            style={{ textAlign: 'center', fontSize: '1.4rem', letterSpacing: 3 }}
           />
           <p className="error">{error}</p>
           <button className="btn primary big" style={{ width: '100%' }} disabled={busy}>
-            כניסה
+            יאללה, נכנסות! 🎉
           </button>
         </form>
       </div>

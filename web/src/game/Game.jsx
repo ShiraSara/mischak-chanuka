@@ -133,8 +133,6 @@ export default function Game({ gameId, me, onExit }) {
   return (
     <section id="view-game">
       <div className={`stage ${curtain.closed ? 'closed' : ''}`}>
-        <div className="spot" />
-        <div className="floor" />
         <div className="game-main enter" key={shownScene}>
           {content}
         </div>
@@ -143,7 +141,6 @@ export default function Game({ gameId, me, onExit }) {
         <div className="curtain-label">
           <CurtainLabel label={curtain.label} state={state} />
         </div>
-        <div className="valance" />
         <div className="stage-info">
           <span>
             ☎ להצבעה התקשרו{me?.phoneInfo ? ': ' : ' למספר המשחק'}

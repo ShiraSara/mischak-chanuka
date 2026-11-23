@@ -73,6 +73,18 @@ export default function PlayersEditor({ players, setPlayers }) {
         </span>
       </div>
 
+      {named > 0 && (
+        <div className="su-preview">
+          {players
+            .filter((p) => p.name.trim())
+            .map((p, i) => (
+              <span className="su-tag" key={i}>
+                {p.name}
+              </span>
+            ))}
+        </div>
+      )}
+
       <div className="su-players" ref={rowsRef}>
         {players.map((p, i) => (
           <div className="su-player" key={i}>
@@ -98,8 +110,8 @@ export default function PlayersEditor({ players, setPlayers }) {
                 onKeyDown={(e) => onKey(e, i, 'phone')}
               />
             </div>
-            <button className="su-x" title="הסרה" onClick={() => remove(i)}>
-              ✕
+            <button className="su-x" title="הסרת המשתתפת" onClick={() => remove(i)}>
+              🗑️
             </button>
           </div>
         ))}
@@ -135,7 +147,7 @@ export default function PlayersEditor({ players, setPlayers }) {
           </span>
           {importMsg && <div style={{ marginTop: 6, fontWeight: 500 }}>{importMsg}</div>}
         </div>
-        <button className="btn" onClick={() => fileRef.current.click()}>
+        <button className="btn gold" onClick={() => fileRef.current.click()}>
           בחירת קובץ
         </button>
         <input

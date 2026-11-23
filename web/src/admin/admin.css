@@ -1,38 +1,34 @@
 /* ============ מסך ניהול ============ */
-.ad-body { margin-top: -40px; display: flex; flex-direction: column; gap: 20px; }
+.ad-body { display: flex; flex-direction: column; gap: 26px; margin-top: 20px; }
 
 .ad-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; }
 .ad-form .full { grid-column: 1 / -1; }
-.ad-label { display: block; font-weight: 700; margin-bottom: 8px; }
-.ad-label small { font-weight: 400; color: var(--muted); margin-right: 6px; }
-.ad-form input[type=text], .ad-form input[type=number] { padding: 13px 14px; font-size: 1.08rem; background: #fbfafc; }
-.ad-form input:focus { background: #fff; }
+.ad-label { display: block; font-weight: 800; margin-bottom: 8px; }
+.ad-label small { font-weight: 500; color: var(--muted); margin-right: 6px; }
+.ad-form input[type=text], .ad-form input[type=number] { padding: 13px 14px; font-size: 1.08rem; }
 
 .ad-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ad-pick button {
-  border: 1.5px solid #e6dcea; background: #fff; border-radius: 12px; padding: 10px 16px; font: inherit; cursor: pointer; min-width: 64px;
+  border: 2.5px solid var(--ink); background: #fff; border-radius: 12px; padding: 9px 16px; font: inherit; font-weight: 800; cursor: pointer; min-width: 64px;
 }
-.ad-pick button.on { border-color: #e0962a; background: #fff4d6; color: #8a5a00; font-weight: 700; }
-.ad-pick input { width: 160px !important; padding: 10px 12px !important; }
+.ad-pick button.on { background: var(--c2); box-shadow: 3px 3px 0 var(--ink); transform: rotate(-2deg); }
+.ad-pick input { width: 160px !important; padding: 9px 12px !important; }
+.ad-submit { grid-column: 1 / -1; }
 
-.ad-submit { grid-column: 1 / -1; display: flex; justify-content: flex-start; }
+.ad-created { margin-top: 22px; border-radius: 20px; padding: 20px; background: var(--ink); color: #fff; box-shadow: 6px 6px 0 var(--c2); }
+.ad-created .code { font-weight: 900; font-size: 2.6rem; color: var(--c2); letter-spacing: 4px; direction: ltr; display: inline-block; }
+.ad-created textarea { margin-top: 10px; font-size: 1rem; }
+.ad-created .row { margin-top: 12px; }
 
-.ad-created {
-  margin-top: 22px; border-radius: 16px; padding: 20px; background: linear-gradient(135deg, #3a1550, #7a0f22); color: #fff;
-}
-.ad-created .code { font-family: 'Suez One', 'Rubik', serif; font-size: 2.4rem; color: #f6c453; letter-spacing: 4px; direction: ltr; display: inline-block; }
-.ad-created textarea { margin-top: 10px; background: #fff; color: var(--ink); font-size: 1rem; }
-.ad-created .row { margin-top: 10px; }
-
-.ad-codes { display: flex; flex-direction: column; gap: 10px; }
+.ad-codes { display: flex; flex-direction: column; gap: 12px; }
 .ad-code {
   display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: center;
-  padding: 14px 16px; border: 1.5px solid #eee7f0; border-radius: 14px;
+  padding: 14px 16px; border: 2.5px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: 3px 3px 0 var(--ink);
 }
-.ad-code.off { opacity: .55; background: #faf8f9; }
-.ad-code .c { font-family: monospace; font-size: 1.25rem; font-weight: 700; direction: ltr; text-align: right; }
-.ad-code .meta { color: var(--muted); font-size: .92rem; display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; }
-.ad-code .lbl { font-weight: 500; }
+.ad-code.off { opacity: .5; }
+.ad-code .c { font-family: monospace; font-size: 1.3rem; font-weight: 800; direction: ltr; text-align: right; }
+.ad-code .meta { color: var(--muted); font-size: .92rem; display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; font-weight: 500; }
+.ad-code .lbl { font-weight: 800; }
 .ad-code .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ad-search { margin-bottom: 14px; }
 
