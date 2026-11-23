@@ -2,7 +2,7 @@ import { BRAND } from '../lib/theme.js';
 import Wave from '../lib/Wave.jsx';
 
 // מה שמופיע על ה"דלתות" כשהן סגורות
-export default function CurtainLabel({ label, state }) {
+export default function CurtainLabel({ label, state, phone }) {
   if (!label) return null;
   if (label.kind === 'lobby' && state) {
     const g = state.game;
@@ -13,8 +13,14 @@ export default function CurtainLabel({ label, state }) {
           <div className="marquee">{BRAND}</div>
           <Wave />
         </div>
+        {phone && (
+          <div className="lobby-phone">
+            <span>☎ מתקשרות למספר</span>
+            <b>{phone}</b>
+          </div>
+        )}
         <div className="curtain-sub">
-          מתקשרות ומצטרפות! קוד משחק: <b>{g.pin}</b>
+          ומצטרפות! קוד משחק: <b>{g.pin}</b>
         </div>
         <div className="lobby-chips">
           {state.players.map((p) => (

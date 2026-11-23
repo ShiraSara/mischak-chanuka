@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import ThemePicker from '../lib/ThemePicker.jsx';
 import AutoBadge from './AutoBadge.jsx';
 
 // כפתורי השליטה בתחתית המסך – משתנים לפי שלב המשחק
 export default function Controls({ game, soundOn, onAction, clockOffset }) {
-  const [palette, setPalette] = useState(false);
   const last = game.qIndex + 1 >= game.total;
   // כפתור ראשי גדול, כל השאר קטנים – שהכל ייכנס בשורה אחת
   const B = (a, label, cls = '', title) => (
@@ -45,19 +43,12 @@ export default function Controls({ game, soundOn, onAction, clockOffset }) {
 
   return (
     <div className="controls">
+      {/* ערכות צבעים – תמיד גלויות בפינה השמאלית */}
+      <div className="controls-palette" title="צבעי המשחק">
+        <ThemePicker compact />
+      </div>
       {main}
       {autoCtl}
-      <span style={{ position: 'relative' }}>
-        <button className={`btn small ${palette ? 'gold' : 'ghost'}`} onClick={() => setPalette(!palette)}>
-          🎨 צבעים
-        </button>
-        {palette && (
-          <div className="palette-pop">
-            <div className="ttl">בחרי צבעים למשחק</div>
-            <ThemePicker compact />
-          </div>
-        )}
-      </span>
       {B('sound', soundOn ? '🔊' : '🔇', 'ghost')}
       {B('fullscreen', '⛶', 'ghost', 'מסך מלא')}
       {B('sim', '📱', 'ghost', 'סימולטור טלפון (בדיקה)')}

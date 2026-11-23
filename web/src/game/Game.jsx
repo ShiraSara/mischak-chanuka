@@ -151,12 +151,13 @@ export default function Game({ gameId, me, onExit }) {
         <div className="curtain right" />
         <div className="valance" />
         <div className="curtain-label">
-          <CurtainLabel label={curtain.label} state={state} />
+          <CurtainLabel label={curtain.label} state={state} phone={me?.phoneInfo} />
         </div>
         <div className="stage-info">
-          <span>
-            ☎ להצבעה התקשרו{me?.phoneInfo ? ': ' : ' למספר המשחק'}
-            {me?.phoneInfo && <b>{me.phoneInfo}</b>}
+          <span className="phone-box">
+            <span className="ph-ic">☎</span>
+            <span className="ph-lbl">להצבעה מתקשרות</span>
+            {me?.phoneInfo ? <b className="ph-num">{me.phoneInfo}</b> : <span>למספר המשחק</span>}
           </span>
           {state && (
             <span className="pin-box">

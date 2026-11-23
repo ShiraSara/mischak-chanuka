@@ -359,13 +359,6 @@ input.ltr { direction: ltr; text-align: right; }
   position: sticky; bottom: 0; z-index: 20; background: var(--bg); border-top: 3px solid var(--ink);
   padding: 12px 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center;
 }
-.palette-pop {
-  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-  background: #fff; border: var(--b); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); padding: 14px;
-}
-.palette-pop .ttl { font-weight: 800; margin-bottom: 10px; white-space: nowrap; }
-.palette-pop { width: max-content; z-index: 30; }
-.palette-pop .theme-picker { flex-wrap: nowrap; }
 
 @media (max-width: 800px) {
   .stage { padding: 14px 12px 70px; }
@@ -425,3 +418,56 @@ input.ltr { direction: ltr; text-align: right; }
   box-shadow: 2px 2px 0 var(--ink); min-width: 140px; text-align: center;
 }
 .btn.ghost.small { box-shadow: none; border-color: transparent; }
+
+/* ערכות צבעים קבועות בפינה השמאלית של הסרגל */
+.controls { position: sticky; }
+.controls-palette { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); }
+.controls-palette .theme-picker { flex-wrap: nowrap; gap: 6px; }
+.controls-palette .theme-dot { padding: 5px 7px; box-shadow: 2px 2px 0 var(--ink); }
+.controls-palette .theme-dot .sw i { width: 14px; height: 14px; }
+.controls-palette .theme-dot.on { transform: translateY(-3px); }
+@media (max-width: 1250px) { .controls-palette { position: static; transform: none; order: 99; } }
+
+/* מספר הטלפון – גדול וברור */
+.stage-info { bottom: 10px; gap: 16px; }
+.stage-info > .phone-box {
+  display: inline-flex; align-items: center; gap: 12px; padding: 8px 22px; background: var(--c2);
+  border-width: 3px; box-shadow: 5px 5px 0 var(--ink); transform: rotate(-1deg);
+}
+.phone-box .ph-ic { font-size: 1.8rem; line-height: 1; }
+.phone-box .ph-lbl { font-weight: 800; font-size: 1.15rem; }
+.stage-info .phone-box .ph-num { color: var(--ink); font-size: clamp(2rem, 3.4vw, 2.8rem); font-weight: 900; letter-spacing: 1px; line-height: 1.1; }
+.stage-info > .pin-box { font-size: 1.15rem; padding: 10px 16px; }
+.stage-info .pin-box b { font-size: 1.6rem; }
+.game-main { min-height: calc(100vh - 280px); }
+.stage { padding-bottom: 100px; }
+.lobby-phone {
+  display: inline-flex; align-items: center; gap: 16px; background: #fff; color: var(--ink);
+  border: 3px solid var(--ink); border-radius: 18px; box-shadow: 7px 7px 0 var(--ink); padding: 10px 28px; transform: rotate(-2deg);
+}
+.lobby-phone span { font-weight: 800; font-size: 1.4rem; }
+.lobby-phone b { font-weight: 900; font-size: clamp(2.6rem, 5vw, 4rem); direction: ltr; letter-spacing: 1px; color: var(--c1); line-height: 1.1; }
+
+/* מי שהצביעה – השם קופץ */
+.voters { gap: 10px; margin-top: 20px; }
+.chip { font-size: 1.15rem; padding: 7px 15px; }
+.chip.on {
+  background: var(--c2); border-color: #fff; color: var(--ink); box-shadow: 3px 3px 0 var(--c1);
+  animation: chip-pop .7s cubic-bezier(.2, 1.6, .4, 1) both;
+}
+.chip.on::after { content: ''; position: absolute; inset: -6px; border-radius: 14px; border: 3px solid var(--c2); animation: chip-ring .7s ease-out both; pointer-events: none; }
+.chip { position: relative; }
+@keyframes chip-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.45) rotate(-8deg); }
+  60% { transform: scale(.92) rotate(4deg); }
+  100% { transform: scale(1) rotate(-2deg); }
+}
+@keyframes chip-ring { from { opacity: 1; transform: scale(.8); } to { opacity: 0; transform: scale(1.6); } }
+/* מקום לפס הטלפון מעל סרגל הכפתורים */
+.stage { min-height: calc(100vh - 88px); padding-bottom: 122px; }
+.game-main { min-height: calc(100vh - 300px); }
+.stage-info { bottom: 18px; }
+/* פס הטלפון תמיד גלוי – צמוד מעל סרגל הכפתורים */
+.stage-info { position: fixed; bottom: 100px; z-index: 15; }
+.stage { padding-bottom: 130px; }
