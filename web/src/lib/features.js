@@ -3,6 +3,6 @@
 export const FEATURES = {
   imageImport: false, // ייבוא שאלות מתמונה (Gemini)
   narrator: false, // קריין שמקריא שאלות ומנצחות
-  simulator: false, // סימולטור טלפון לבדיקות
+  simulator: true, // סימולטור טלפון לבדיקות
   aiCheck: false, // כרטיס "חיבור ל-AI" במסך הניהול
 };
