@@ -20,9 +20,11 @@ export default function TimerRing({ startedAt, seconds, clockOffset, soundOn }) 
 
   useEffect(() => {
     if (left === lastSec.current) return;
-    if (soundOn && lastSec.current !== null) {
-      if (left <= 5 && left > 0) playSound('tick');
-      if (lastSec.current > 0 && left === 0) playSound('buzz');
+    if (soundOn && lastSec.current !== null && left < lastSec.current) {
+      // שעון מתקתק לאורך כל הזמן, צפצוף ב-5 האחרונות, באזר בסוף
+      if (left > 5) playSound(left % 2 ? 'clock-tick' : 'clock-tock');
+      else if (left > 0) playSound('tick');
+      else playSound('buzz');
     }
     lastSec.current = left;
   }, [left, soundOn]);

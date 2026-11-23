@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 
 const KEY = 'seker_audio';
-const DEFAULTS = { music: true, musicVolume: 0.5, narrator: true, voice: '', readWinners: true };
+const DEFAULTS = { music: true, musicVolume: 0.5, musicStyle: 'quiz', narrator: true, engine: 'ai', aiVoice: 'Kore', voice: '', readWinners: true };
 
 export function getPrefs() {
   try {

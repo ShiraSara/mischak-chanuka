@@ -1,6 +1,7 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
+import { synthesize } from './tts.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20;
@@ -581,6 +582,25 @@ async function hostRoutes(req, env, path, method, c) {
       phoneInfo: env.PHONE_INFO || '',
       ai: aiQuota(env, c),
     });
+  }
+
+  // קריין בקול AI – עם מטמון כדי שאותו משפט לא ייווצר פעמיים
+  if (path === '/api/tts' && method === 'POST') {
+    const { text, voice } = await body(req);
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${voice}|${text}`));
+    const key = 'https://tts-cache.local/' + [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const cache = caches.default;
+    const hit = await cache.match(key);
+    if (hit) return hit;
+    try {
+      const { bytes, mime } = await synthesize(env, text, voice);
+      const res = new Response(bytes, { headers: { 'content-type': mime, 'cache-control': 'public, max-age=2592000' } });
+      await cache.put(key, res.clone());
+      return res;
+    } catch (e) {
+      if (e instanceof AiError) return err(e.message, 503);
+      throw e;
+    }
   }
 
   // קריאת שאלות מתמונה (Claude)

@@ -1,10 +1,19 @@
-// מנגינת רקע שנוצרת בדפדפן (בלי קבצי מוזיקה) ומגיבה למשחק:
-// lobby – רגוע · question – מתח שמאיץ לקראת סוף הטיימר · results – חגיגי · roll – תופים לפני חשיפה
-const NOTE = { E1: 41.2, G1: 49, A1: 55, C2: 65.41, D2: 73.42, E2: 82.41, A2: 110, Bb2: 116.54, C3: 130.81, E3: 164.81, G3: 196, A3: 220, C4: 261.63, E4: 329.63, G4: 392, C5: 523.25 };
+// מנגינת רקע שנוצרת בדפדפן (בלי קבצי מוזיקה). כל המנגינות מקוריות.
+// מצבים: lobby – רגוע · question – לפי הסגנון שנבחר, מאיץ לקראת סוף הטיימר · results – חגיגי · roll – תופים
+export const MUSIC_STYLES = [
+  { id: 'quiz', name: 'חידון טלוויזיה', icon: '📺' },
+  { id: 'clock', name: 'שעון מתקתק', icon: '⏱️' },
+  { id: 'happy', name: 'קליל ושמח', icon: '🎈' },
+  { id: 'drama', name: 'מתח דרמטי', icon: '🎻' },
+  { id: 'chip', name: 'משחק מחשב', icon: '👾' },
+];
+
+const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 
 class Music {
   ctx = null;
   mode = 'off';
+  style = 'quiz';
   tension = 0;
   volume = 0.5;
   step = 0;
@@ -24,7 +33,6 @@ class Music {
     this.duck = c.createGain();
     this.bus = c.createGain();
     this.bus.connect(this.duck).connect(this.master).connect(c.destination);
-    // רעש לבן לתופים ולתקתוק
     const len = c.sampleRate;
     this.noise = c.createBuffer(1, len, c.sampleRate);
     const d = this.noise.getChannelData(0);
@@ -32,7 +40,6 @@ class Music {
     return true;
   }
 
-  // צריך להיקרא אחרי לחיצה של המשתמשת (מדיניות הדפדפנים)
   unlock() {
     if (!this.ensure()) return;
     if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -43,17 +50,20 @@ class Music {
     if (this.master) this.master.gain.setTargetAtTime(v * 0.6, this.ctx.currentTime, 0.1);
   }
 
+  setStyle(s) {
+    if (MUSIC_STYLES.some((x) => x.id === s)) this.style = s;
+  }
+
   setTension(t) {
     this.tension = Math.max(0, Math.min(1, t));
   }
 
-  // הנמכה בזמן שהקריין מדבר
   setDucked(on) {
     if (this.duck) this.duck.gain.setTargetAtTime(on ? 0.22 : 1, this.ctx.currentTime, 0.15);
   }
 
-  setMode(mode) {
-    if (mode === this.mode) return;
+  setMode(mode, force = false) {
+    if (mode === this.mode && !force) return;
     this.mode = mode;
     if (mode === 'off') {
       if (this.bus) this.bus.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
@@ -65,14 +75,17 @@ class Music {
     const c = this.ctx;
     this.bus.gain.cancelScheduledValues(c.currentTime);
     this.bus.gain.setValueAtTime(0.0001, c.currentTime);
-    this.bus.gain.exponentialRampToValueAtTime(1, c.currentTime + 0.6);
+    this.bus.gain.exponentialRampToValueAtTime(1, c.currentTime + 0.5);
     this.step = 0;
     this.nextTime = c.currentTime + 0.08;
     if (!this.timer) this.timer = setInterval(() => this.schedule(), 25);
   }
 
   bpm() {
-    if (this.mode === 'question') return 112 + 58 * this.tension;
+    const T = this.tension;
+    if (this.mode === 'question') {
+      return { quiz: 126 + 40 * T, clock: 64 + 50 * T, happy: 116 + 30 * T, drama: 112 + 58 * T, chip: 138 + 40 * T }[this.style] || 120;
+    }
     if (this.mode === 'results') return 124;
     if (this.mode === 'roll') return 130;
     return 92;
@@ -80,16 +93,15 @@ class Music {
 
   schedule() {
     if (!this.ctx || this.mode === 'off') return;
-    // אם הלשונית הייתה ברקע – לא "להשלים" מאות צעדים בבת אחת
     if (this.nextTime < this.ctx.currentTime - 0.3) this.nextTime = this.ctx.currentTime + 0.05;
     while (this.nextTime < this.ctx.currentTime + 0.12) {
-      this.play(this.step % 32, this.nextTime);
+      this.play(this.step, this.nextTime);
       this.nextTime += 60 / this.bpm() / 4;
       this.step++;
     }
   }
 
-  // ---- כלים ----
+  // ---------- כלים ----------
   tone(freq, t, dur, { type = 'sine', vol = 0.2, cutoff = 0, attack = 0.005 } = {}) {
     const c = this.ctx;
     const o = c.createOscillator();
@@ -110,6 +122,10 @@ class Music {
     node.connect(g).connect(this.bus);
     o.start(t);
     o.stop(t + dur + 0.05);
+  }
+
+  chord(root, intervals, t, dur, opts) {
+    for (const i of intervals) this.tone(hz(root + i), t, dur, opts);
   }
 
   kick(t, vol = 0.5) {
@@ -140,41 +156,108 @@ class Music {
     s.stop(t + dur + 0.02);
   }
 
-  // ---- דפוסים (32 צעדים של 1/16) ----
-  play(s, t) {
-    const m = this.mode;
-    if (m === 'question') {
-      const T = this.tension;
-      const bass = ['A1', 'A1', 'A1', 'C2', 'A1', 'A1', 'G1', 'E1', 'A1', 'A1', 'A1', 'C2', 'A1', 'D2', 'C2', 'G1'];
-      if (s % 2 === 0) this.tone(NOTE[bass[s / 2]], t, 0.17, { type: 'sawtooth', vol: 0.16, cutoff: 320 + 900 * T });
-      if (s % 8 === 0) this.kick(t, 0.38 + 0.2 * T);
-      if (s % 2 === 0 || T > 0.55) this.hit(t, { vol: s % 4 === 0 ? 0.07 : 0.035 + 0.03 * T });
-      if (s === 0) {
-        // צליל מתח ארוך; בסוף הזמן – צורם יותר
-        this.tone(NOTE.A2, t, 2.2, { type: 'triangle', vol: 0.05, attack: 0.3 });
-        this.tone(T > 0.7 ? NOTE.Bb2 : NOTE.E3, t, 2.2, { type: 'triangle', vol: 0.04, attack: 0.3 });
-      }
-      if (T > 0.8 && s % 4 === 2) this.tone(NOTE.A3, t, 0.08, { type: 'square', vol: 0.03 });
-    } else if (m === 'results') {
-      const arp = ['C4', 'E4', 'G4', 'C5', 'G4', 'E4', 'G4', 'E4'];
-      if (s % 2 === 0) this.tone(NOTE[arp[(s / 2) % 8]], t, 0.22, { type: 'triangle', vol: 0.09 });
+  // ---------- דפוסים ----------
+  play(step, t) {
+    const s = step % 32;
+    if (this.mode === 'question') return this[`q_${this.style}`]?.(step, t) ?? this.q_quiz(step, t);
+    if (this.mode === 'results') {
+      const arp = [60, 64, 67, 72, 67, 64, 67, 64];
+      if (s % 2 === 0) this.tone(hz(arp[(s / 2) % 8]), t, 0.22, { type: 'triangle', vol: 0.09 });
       if (s % 8 === 0) this.kick(t, 0.35);
       if (s % 8 === 4) this.hit(t, { vol: 0.12, dur: 0.12, bp: 1800 });
-      if (s % 16 === 0) this.tone(s === 0 ? NOTE.C3 : NOTE.G3, t, 0.9, { type: 'sine', vol: 0.12 });
-    } else if (m === 'roll') {
-      // תופים שמתגברים
-      const v = 0.03 + 0.11 * (s / 32);
-      this.hit(t, { vol: v, dur: 0.06, bp: 2500 });
-      if (s % 16 === 0) this.tone(NOTE.A1 * 2, t, 0.6, { type: 'sine', vol: 0.25 });
-    } else if (m === 'lobby') {
-      const arp = ['A2', 'C3', 'E3', 'G3', 'E3', 'C3', 'E3', 'C3'];
-      if (s % 2 === 0) this.tone(NOTE[arp[(s / 2) % 8]] * 2, t, 0.35, { type: 'sine', vol: 0.07 });
+      if (s % 16 === 0) this.tone(hz(s === 0 ? 48 : 55), t, 0.9, { vol: 0.12 });
+    } else if (this.mode === 'roll') {
+      this.hit(t, { vol: 0.03 + 0.11 * (s / 32), dur: 0.06, bp: 2500 });
+      if (s % 16 === 0) this.tone(hz(45), t, 0.6, { vol: 0.25 });
+    } else if (this.mode === 'lobby') {
+      const arp = [57, 60, 64, 67, 64, 60, 64, 60];
+      if (s % 2 === 0) this.tone(hz(arp[(s / 2) % 8]), t, 0.35, { vol: 0.07 });
       if (s % 8 === 0) this.kick(t, 0.22);
       if (s % 4 === 2) this.hit(t, { vol: 0.025 });
     }
+  }
+
+  // 📺 חידון טלוויזיה – בס צועד, אקורדים קצרים על ההפסקות, תופים של שעשועון
+  q_quiz(step, t) {
+    const T = this.tension;
+    const s = step % 16;
+    const bar = Math.floor(step / 16) % 4;
+    const prog = [
+      [48, [0, 3, 7]], // Cm
+      [44, [0, 4, 7]], // Ab
+      [46, [0, 4, 7]], // Bb
+      [43, [0, 4, 7]], // G
+    ][bar];
+    const [root, iv] = prog;
+    if (s % 4 === 0) this.tone(hz(root - 12 + (s % 8 === 4 ? 7 : 0)), t, 0.22, { type: 'sawtooth', vol: 0.15, cutoff: 500 + 700 * T });
+    if (s % 4 === 2) this.chord(root + 12, iv, t, 0.09, { type: 'square', vol: 0.028, cutoff: 2600 });
+    if (s % 8 === 0) this.kick(t, 0.4);
+    if (s % 8 === 4) this.hit(t, { vol: 0.13, dur: 0.11, bp: 1900 });
+    if (s % 2 === 0 || T > 0.5) this.hit(t, { vol: 0.03 + 0.03 * T });
+    // מוטיב קצר בסוף כל זוג תיבות
+    if (bar % 2 === 1 && [8, 10, 12, 14].includes(s)) this.tone(hz(root + 24 + iv[[8, 10, 12, 14].indexOf(s) % 3]), t, 0.14, { type: 'triangle', vol: 0.06 });
+  }
+
+  // ⏱️ שעון מתקתק – פעימות לב וצליל נמוך; התקתוק עצמו מגיע מהטיימר
+  q_clock(step, t) {
+    const T = this.tension;
+    const s = step % 16;
+    if (s === 0 || s === 3) this.kick(t, s === 0 ? 0.45 : 0.3);
+    if (step % 32 === 0) this.tone(hz(33), t, 2.4, { type: 'triangle', vol: 0.09, attack: 0.4 });
+    if (s === 8) this.tone(hz(76 + (T > 0.6 ? 1 : 0)), t, 0.5, { vol: 0.035 });
+    if (T > 0.7 && s % 4 === 2) this.tone(hz(45), t, 0.12, { type: 'square', vol: 0.03, cutoff: 600 });
+  }
+
+  // 🎈 קליל ושמח – בס קופצני, אקורדים מורטים, כפיים
+  q_happy(step, t) {
+    const s = step % 16;
+    const bar = Math.floor(step / 16) % 4;
+    const [root, iv] = [
+      [48, [0, 4, 7]], // C
+      [43, [0, 4, 7]], // G
+      [45, [0, 3, 7]], // Am
+      [41, [0, 4, 7]], // F
+    ][bar];
+    if (s % 2 === 0) this.tone(hz(root - 12 + (s % 4 === 2 ? 12 : 0)), t, 0.14, { type: 'triangle', vol: 0.14 });
+    if (s % 4 === 2) this.chord(root + 12, iv, t, 0.12, { type: 'triangle', vol: 0.04 });
+    if (s % 8 === 0) this.kick(t, 0.32);
+    if (s % 8 === 4) this.hit(t, { vol: 0.12, dur: 0.09, bp: 1500 });
+    const mel = [0, 2, 4, 7, 9, 7, 4, 2];
+    if (s % 2 === 1 && bar % 2 === 0) this.tone(hz(root + 24 + mel[(s - 1) / 2]), t, 0.12, { vol: 0.05 });
+  }
+
+  // 🎻 מתח דרמטי – בס מאיים, צליל ארוך שהופך צורם בסוף הזמן
+  q_drama(step, t) {
+    const T = this.tension;
+    const s = step % 32;
+    const bass = [33, 33, 33, 36, 33, 33, 31, 28, 33, 33, 33, 36, 33, 38, 36, 31];
+    if (s % 2 === 0) this.tone(hz(bass[s / 2]), t, 0.17, { type: 'sawtooth', vol: 0.16, cutoff: 320 + 900 * T });
+    if (s % 8 === 0) this.kick(t, 0.38 + 0.2 * T);
+    if (s % 2 === 0 || T > 0.55) this.hit(t, { vol: s % 4 === 0 ? 0.07 : 0.035 + 0.03 * T });
+    if (s === 0) {
+      this.tone(hz(45), t, 2.2, { type: 'triangle', vol: 0.05, attack: 0.3 });
+      this.tone(hz(T > 0.7 ? 46 : 52), t, 2.2, { type: 'triangle', vol: 0.04, attack: 0.3 });
+    }
+    if (T > 0.8 && s % 4 === 2) this.tone(hz(57), t, 0.08, { type: 'square', vol: 0.03 });
+  }
+
+  // 👾 משחק מחשב – ארפג'ו מהיר בסגנון 8-ביט
+  q_chip(step, t) {
+    const s = step % 16;
+    const bar = Math.floor(step / 16) % 4;
+    const [root, iv] = [
+      [57, [0, 3, 7, 12]], // Am
+      [53, [0, 4, 7, 12]], // F
+      [48, [0, 4, 7, 12]], // C
+      [55, [0, 4, 7, 12]], // G
+    ][bar];
+    this.tone(hz(root + 12 + iv[s % 4]), t, 0.07, { type: 'square', vol: 0.035 });
+    if (s % 2 === 0) this.tone(hz(root - 12), t, 0.1, { type: 'square', vol: 0.06, cutoff: 900 });
+    if (s % 8 === 0) this.hit(t, { vol: 0.12, dur: 0.06, bp: 200 });
+    if (s % 8 === 4) this.hit(t, { vol: 0.1, dur: 0.08, bp: 3000 });
   }
 }
 
 export const music = new Music();
 // לבדיקות
-if (typeof window !== "undefined") window.__sekerMusic = music;
+if (typeof window !== 'undefined') window.__sekerMusic = music;

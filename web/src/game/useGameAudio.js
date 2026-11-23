@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { music } from '../lib/music.js';
-import { speak, stopSpeaking } from '../lib/narrator.js';
+import { speakWith, stopAll, prefetchAi } from '../lib/narrator.js';
 import { usePrefs } from '../lib/prefs.js';
 
 // מה הקריין אומר בכל שלב
@@ -38,7 +38,7 @@ function narrationFor(view) {
 }
 
 // מנגינת רקע + קריין, לפי מה שמוצג על המסך
-export function useGameAudio({ view, shownScene, curtainClosed, transitioning, clockOffset }) {
+export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transitioning, clockOffset }) {
   const prefs = usePrefs();
   const [unlocked, setUnlocked] = useState(false);
   const spokenRef = useRef('');
@@ -58,6 +58,13 @@ export function useGameAudio({ view, shownScene, curtainClosed, transitioning, c
   }, []);
 
   useEffect(() => music.setVolume(prefs.musicVolume), [prefs.musicVolume]);
+  useEffect(() => music.setStyle(prefs.musicStyle), [prefs.musicStyle]);
+
+  // הכנת הקראת השאלה הבאה בקול AI מראש – בזמן שהווילון סגור
+  const upcomingText = upcoming && upcoming.game.phase === 'question' ? narrationFor(upcoming)?.text : '';
+  useEffect(() => {
+    if (prefs.narrator && prefs.engine === 'ai' && upcomingText) prefetchAi(upcomingText, prefs.aiVoice);
+  }, [upcomingText, prefs.narrator, prefs.engine, prefs.aiVoice]);
 
   // איזו מנגינה מתנגנת
   const phase = view?.game.phase;
@@ -93,8 +100,7 @@ export function useGameAudio({ view, shownScene, curtainClosed, transitioning, c
     // רגע קטן אחרי האנימציה
     const t = setTimeout(
       () =>
-        speak(n.text, {
-          voiceName: prefs.voice,
+        speakWith(prefs, n.text, {
           onStart: () => music.setDucked(true),
           onEnd: () => music.setDucked(false),
         }),
@@ -102,13 +108,13 @@ export function useGameAudio({ view, shownScene, curtainClosed, transitioning, c
     );
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownScene, phase, curtainClosed, unlocked, prefs.narrator, prefs.readWinners, prefs.voice]);
+  }, [shownScene, phase, curtainClosed, unlocked, prefs.narrator, prefs.readWinners, prefs.voice, prefs.engine, prefs.aiVoice]);
 
   // כשיוצאים מהמשחק – שקט
   useEffect(
     () => () => {
       music.setMode('off');
-      stopSpeaking();
+      stopAll();
     },
     []
   );

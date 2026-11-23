@@ -6,6 +6,22 @@ export function playSound(kind) {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     if (kind === 'unlock') return;
     const t = ctx.currentTime;
+    // נקישה קצרה ויבשה של שעון
+    const clock = (freq, vol) => {
+      const o = ctx.createOscillator();
+      const f = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      f.type = 'bandpass';
+      f.frequency.value = freq;
+      f.Q.value = 8;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      o.connect(f).connect(g).connect(ctx.destination);
+      o.start(t);
+      o.stop(t + 0.05);
+    };
     const note = (freq, start, dur, type = 'sine', vol = 0.2) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -17,10 +33,16 @@ export function playSound(kind) {
       o.start(t + start);
       o.stop(t + start + dur);
     };
-    if (kind === 'tick') note(880, 0, 0.12, 'square', 0.08);
+    // שעון: טיק / טוק לסירוגין
+    if (kind === 'clock-tick') clock(2400, 0.1);
+    if (kind === 'clock-tock') clock(1600, 0.1);
+    // 5 השניות האחרונות – צפצוף חד
+    if (kind === 'tick') note(988, 0, 0.13, 'square', 0.09);
+    // באזר של שעשועון – צליל נמוך וצורם
     if (kind === 'buzz') {
-      note(220, 0, 0.5, 'sawtooth', 0.12);
-      note(165, 0.05, 0.6, 'sawtooth', 0.1);
+      note(98, 0, 0.95, 'sawtooth', 0.2);
+      note(104, 0, 0.95, 'sawtooth', 0.18);
+      note(196, 0, 0.95, 'square', 0.06);
     }
     if (kind === 'fanfare') [523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.12, i === 3 ? 0.6 : 0.18, 'triangle', 0.15));
   } catch {

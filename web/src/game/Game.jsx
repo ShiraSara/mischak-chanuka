@@ -9,7 +9,7 @@ import Controls from './Controls.jsx';
 import BoardView from './BoardView.jsx';
 import { useGameAudio } from './useGameAudio.js';
 import { setPrefs } from '../lib/prefs.js';
-import { stopSpeaking } from '../lib/narrator.js';
+import { stopAll } from '../lib/narrator.js';
 
 const CURTAIN_MS = 1100; // משך סגירת הווילון
 const HOLD_MS = 1300; // כמה זמן הווילון נשאר סגור עם "שאלה N"
@@ -93,7 +93,7 @@ export default function Game({ gameId, me, onExit }) {
   if (state && sceneOf(state) === shownScene) snapRef.current = state;
   const view = shownScene && shownScene !== 'lobby' ? snapRef.current : null;
   const transitioning = !!state && sceneOf(state) !== shownScene; // הווילון באמצע מעבר לסצנה הבאה
-  const audio = useGameAudio({ view, shownScene, curtainClosed: curtain.closed, transitioning, clockOffset });
+  const audio = useGameAudio({ view, upcoming: state, shownScene, curtainClosed: curtain.closed, transitioning, clockOffset });
 
   const act = async (action) => {
     if (soundOn) playSound('unlock'); // הדפדפן מאפשר קול רק אחרי לחיצה
@@ -110,7 +110,7 @@ export default function Game({ gameId, me, onExit }) {
     }
     if (action === 'music') return setPrefs({ music: !audio.music });
     if (action === 'narrator') {
-      if (audio.narrator) stopSpeaking();
+      if (audio.narrator) stopAll();
       return setPrefs({ narrator: !audio.narrator });
     }
     if (action === 'fullscreen') return document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();

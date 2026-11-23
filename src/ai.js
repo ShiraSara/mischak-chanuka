@@ -13,7 +13,7 @@ const MAX_MODELS = 4; // הראשי + עד 3 חלופיים
 // שואלים את גוגל אילו דגמים זמינים (ולא מנחשים שמות), ושומרים לשעה.
 let modelCache = { at: 0, key: '', list: null };
 
-async function listAvailableModels(ai, apiKey) {
+export async function listAvailableModels(ai, apiKey) {
   if (modelCache.list && modelCache.key === apiKey && Date.now() - modelCache.at < 3600_000) return modelCache.list;
   const names = [];
   const pager = await ai.models.list({ config: { pageSize: 200 } });
