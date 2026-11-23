@@ -311,6 +311,9 @@ input.ltr { direction: ltr; text-align: right; }
 .timer-ring.low .prog { stroke: var(--c1); }
 .timer-ring.low .num { color: var(--c1); animation: pulse 1s infinite; }
 .timer-ring.done .num { font-size: 2.6rem; animation: shake .5s 2; }
+.timer-ring.paused .prog { stroke: color-mix(in srgb, #fff 45%, transparent); }
+.timer-ring.paused .num { opacity: .55; }
+.timer-ring .paused-tag { position: absolute; bottom: -14px; inset-inline: -20px; text-align: center; font-weight: 900; font-size: .95rem; color: #fff; background: var(--c1); border-radius: 99px; padding: 2px 8px; animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.22); } }
 @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
 

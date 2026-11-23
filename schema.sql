@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS games (
   q_index INTEGER DEFAULT -1,
   phase TEXT DEFAULT 'lobby',      -- lobby | question | results | ended
   q_started_at INTEGER,
+  paused_at INTEGER,           -- עצירה באמצע שאלה: הטיימר קפוא מהרגע הזה
   settings TEXT,                   -- JSON
   questions TEXT,                  -- JSON
   profiles TEXT                    -- JSON: סיכום אישי לכל משתתפת (נוצר בסוף המשחק)

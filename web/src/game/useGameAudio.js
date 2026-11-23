@@ -80,14 +80,16 @@ export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transi
   // מתח: המנגינה מאיצה לקראת סוף הטיימר
   const qStart = view?.game.qStartedAt;
   const timerSec = view?.game.settings.timerSec;
+  const pausedAt = view?.game.pausedAt;
   useEffect(() => {
     if (phase !== 'question' || !timerSec) return music.setTension(0.15);
+    if (pausedAt) return music.setTension(0.15); // בעצירה – בלי מתח
     const t = setInterval(() => {
       const left = qStart + timerSec * 1000 - (Date.now() + clockOffset);
       music.setTension(1 - Math.max(0, Math.min(1, left / (timerSec * 1000))));
     }, 300);
     return () => clearInterval(t);
-  }, [phase, qStart, timerSec, clockOffset]);
+  }, [phase, qStart, timerSec, clockOffset, pausedAt]);
 
   // קריין: פעם אחת לכל שלב, אחרי שהווילון נפתח
   useEffect(() => {

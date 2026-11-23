@@ -167,6 +167,8 @@ function optionsFor(q, players) {
 
 async function setPhase(env, g, fields) {
   const merged = { ...fields, updated_at: now() };
+  // מעבר שלב / שאלה חדשה מבטל עצירה
+  if ('phase' in fields || 'q_started_at' in fields) merged.paused_at = null;
   const keys = Object.keys(merged);
   await env.DB.prepare(`UPDATE games SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
     .bind(...keys.map((k) => merged[k]), g.id)
@@ -193,7 +195,7 @@ async function gameState(env, g) {
 
   // חשיפה אוטומטית: כולן הצביעו או שהזמן נגמר
   const auto = !!g.settings.autoPlay;
-  if (g.phase === 'question' && (g.settings.autoReveal || auto)) {
+  if (g.phase === 'question' && !g.paused_at && (g.settings.autoReveal || auto)) {
     const allVoted = players.length > 0 && votes.length >= players.length;
     const timeUp = g.settings.timerSec > 0 && now() - g.q_started_at > g.settings.timerSec * 1000 + 1500;
     if ((allVoted || timeUp) && (await claimPhase(env, g))) {
@@ -223,6 +225,7 @@ async function gameState(env, g) {
       qIndex: g.q_index,
       total: g.questions.length,
       qStartedAt: g.q_started_at,
+      pausedAt: g.phase === 'question' ? g.paused_at || null : null,
       phaseAt: g.updated_at,
       autoAt: g.settings.autoPlay && (g.phase === 'results' || g.phase === 'board') ? g.updated_at + autoHoldMs(g) : null,
       settings: g.settings,
@@ -407,17 +410,32 @@ async function gameAction(env, g, action, payload = {}) {
     case 'auto_on':
     case 'auto_off':
     {
-      const settings = { ...g.settings, autoPlay: action === 'auto_on' };
+      const on = action === 'auto_on';
+      const settings = { ...g.settings, autoPlay: on };
+      const t = now();
+      const fields = { settings: JSON.stringify(settings) };
+      if (g.phase === 'question' && !on && !g.paused_at) fields.paused_at = t; // מקפיאים את הטיימר
+      if (on && g.paused_at) {
+        // ממשיכות מאותה שנייה: מזיזים את תחילת השאלה בזמן שהיה בעצירה
+        fields.paused_at = null;
+        fields.q_started_at = g.q_started_at + (t - g.paused_at);
+        await env.DB.prepare('UPDATE rounds SET started_at = started_at + ? WHERE game_id = ? AND q_index = ?')
+          .bind(t - g.paused_at, g.id, g.q_index)
+          .run();
+      }
       // מתחילים לספור מחדש מרגע ההפעלה
-      await setPhase(env, g, { settings: JSON.stringify(settings) });
+      await setPhase(env, g, fields);
       g.settings = settings;
       break;
     }
     // שינוי הגדרות באמצע המשחק (מהפאנל הצדדי)
     case 'settings': {
       const settings = cleanSettings(payload.settings || {}, g.settings);
-      await env.DB.prepare('UPDATE games SET settings = ? WHERE id = ?').bind(JSON.stringify(settings), g.id).run();
-      g.settings = settings;
+      const autoChanged = settings.autoPlay !== !!g.settings.autoPlay;
+      await env.DB.prepare('UPDATE games SET settings = ? WHERE id = ?').bind(JSON.stringify({ ...settings, autoPlay: !!g.settings.autoPlay }), g.id).run();
+      g.settings = { ...settings, autoPlay: !!g.settings.autoPlay };
+      // הפעלה / כיבוי של אוטומטי מהפאנל – כמו כפתור העצירה (כולל הקפאת הטיימר)
+      if (autoChanged) return gameAction(env, g, settings.autoPlay ? 'auto_on' : 'auto_off');
       break;
     }
     default:

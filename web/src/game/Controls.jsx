@@ -38,7 +38,7 @@ export default function Controls({ game, soundOn, audio, onAction, clockOffset }
   const autoCtl = live && (
     <span className="auto-ctl" key="auto">
       {auto && game.autoAt && <AutoBadge at={game.autoAt} clockOffset={clockOffset} />}
-      {auto ? B('auto_off', '⏸ עצירה') : B('auto_on', '⏩ אוטומטי')}
+      {auto ? B('auto_off', '⏸ עצירה') : B('auto_on', game.pausedAt ? '▶ המשך' : '⏩ אוטומטי', game.pausedAt ? 'gold' : '')}
     </span>
   );
 

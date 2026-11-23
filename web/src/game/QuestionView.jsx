@@ -10,7 +10,8 @@ function Caption({ game, votes, total, clockOffset }) {
     return () => clearInterval(t);
   }, []);
   const sec = game.settings.timerSec;
-  const leftRatio = sec ? Math.max(0, game.qStartedAt + sec * 1000 - (now + clockOffset)) / (sec * 1000) : null;
+  const at = game.pausedAt ?? now + clockOffset; // בעצירה – הזמן קפוא
+  const leftRatio = sec ? Math.max(0, game.qStartedAt + sec * 1000 - at) / (sec * 1000) : null;
   const text = questionCaption({ leftRatio, votes, total, qIndex: game.qIndex });
   return text ? <div className="fun-caption" key={text}>{text}</div> : null;
 }
@@ -26,7 +27,7 @@ export default function QuestionView({ state, clockOffset, soundOn }) {
           שאלה {g.qIndex + 1} מתוך {g.total}
         </div>
         {g.settings.timerSec > 0 && (
-          <TimerRing key={g.qIndex + '-' + g.qStartedAt} startedAt={g.qStartedAt} seconds={g.settings.timerSec} clockOffset={clockOffset} soundOn={soundOn} />
+          <TimerRing key={g.qIndex + '-' + g.qStartedAt} startedAt={g.qStartedAt} seconds={g.settings.timerSec} pausedAt={g.pausedAt} clockOffset={clockOffset} soundOn={soundOn} />
         )}
       </div>
       <div className="q-title">{q.text}</div>

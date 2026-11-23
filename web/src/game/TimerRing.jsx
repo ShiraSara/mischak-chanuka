@@ -5,7 +5,7 @@ const R = 52;
 const CIRC = 2 * Math.PI * R;
 
 // טיימר עגול עם ספירה לאחור, צפצוף ב-5 השניות האחרונות וזמזום בסוף
-export default function TimerRing({ startedAt, seconds, clockOffset, soundOn }) {
+export default function TimerRing({ startedAt, seconds, pausedAt, clockOffset, soundOn }) {
   const [now, setNow] = useState(() => Date.now());
   const lastSec = useRef(null);
 
@@ -15,7 +15,7 @@ export default function TimerRing({ startedAt, seconds, clockOffset, soundOn }) 
   }, []);
 
   const total = seconds * 1000;
-  const leftMs = Math.min(total, Math.max(0, startedAt + total - (now + clockOffset)));
+  const leftMs = Math.min(total, Math.max(0, startedAt + total - (pausedAt ?? now + clockOffset)));
   const left = Math.ceil(leftMs / 1000);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function TimerRing({ startedAt, seconds, clockOffset, soundOn }) 
     lastSec.current = left;
   }, [left, soundOn]);
 
-  const cls = left === 0 ? 'done' : left <= 5 ? 'low' : '';
+  const cls = pausedAt ? 'paused' : left === 0 ? 'done' : left <= 5 ? 'low' : '';
   return (
     <div className={`timer-ring ${cls}`}>
       <svg viewBox="0 0 120 120">
@@ -37,6 +37,7 @@ export default function TimerRing({ startedAt, seconds, clockOffset, soundOn }) 
         <circle className="prog" cx="60" cy="60" r={R} strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - leftMs / total)} />
       </svg>
       <span className="num">{left > 0 ? left : '⏰'}</span>
+      {pausedAt && <span className="paused-tag">⏸ עצירה</span>}
     </div>
   );
 }
