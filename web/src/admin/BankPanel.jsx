@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
 import { withId } from '../lib/api.js';
+import InlineInput from './InlineInput.jsx';
 
 const NO_TOPIC = 'כללי';
 const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
@@ -12,6 +13,8 @@ export default function BankPanel({ pw }) {
   const [qs, setQs] = useState([]);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
+  const [adding, setAdding] = useState(null); // 'bank' | 'topic' | null
+  const [renaming, setRenaming] = useState(null); // שם הנושא שמשנים
 
   const loadBanks = useCallback(async () => {
     const r = await adminApi('/api/admin/banks', pw);
@@ -46,14 +49,13 @@ export default function BankPanel({ pw }) {
     const last = qs.map(topicOf).lastIndexOf(topic || NO_TOPIC);
     change(last < 0 ? [...qs, q] : [...qs.slice(0, last + 1), q, ...qs.slice(last + 1)]);
   };
-  const addTopic = () => {
-    const name = prompt('שם הנושא החדש:');
-    if (name?.trim()) change([...qs, withId({ text: '', type: 'names', options: [], topic: name.trim(), isNew: true })]);
+  const addTopic = (name) => {
+    setAdding(null);
+    if (name) change([...qs, withId({ text: '', type: 'names', options: [], topic: name, isNew: true })]);
   };
-  const renameTopic = (t) => {
-    const name = prompt('שם חדש לנושא:', t === NO_TOPIC ? '' : t);
-    if (name == null) return;
-    change(qs.map((q) => (topicOf(q) === t ? { ...q, topic: name.trim() } : q)));
+  const renameTopic = (t, name) => {
+    setRenaming(null);
+    change(qs.map((q) => (topicOf(q) === t ? { ...q, topic: name } : q)));
   };
   const move = (id, dir) => {
     const i = qs.findIndex((q) => q.id === id);
@@ -74,10 +76,10 @@ export default function BankPanel({ pw }) {
     loadBanks();
   };
 
-  const newBank = async () => {
-    const name = prompt('שם המאגר החדש (למשל: נועז):');
-    if (!name?.trim()) return;
-    const r = await adminApi('/api/admin/banks', pw, 'POST', { name: name.trim(), icon: '📚' });
+  const newBank = async (name) => {
+    setAdding(null);
+    if (!name) return;
+    const r = await adminApi('/api/admin/banks', pw, 'POST', { name, icon: '📚' });
     await loadBanks();
     setDirty(false);
     open(r.id);
@@ -117,10 +119,17 @@ export default function BankPanel({ pw }) {
             </span>
           </button>
         ))}
-        <button className="bank-card add" onClick={newBank}>
-          <span className="ic">➕</span>
-          <b>מאגר חדש</b>
-        </button>
+        {adding === 'bank' ? (
+          <div className="bank-card add editing">
+            <b>שם המאגר החדש</b>
+            <InlineInput placeholder="למשל: נועז" width={150} saveText="יצירה" onSave={newBank} onCancel={() => setAdding(null)} />
+          </div>
+        ) : (
+          <button className="bank-card add" onClick={() => setAdding('bank')}>
+            <span className="ic">➕</span>
+            <b>מאגר חדש</b>
+          </button>
+        )}
       </div>
 
       {bank && (
@@ -158,11 +167,23 @@ export default function BankPanel({ pw }) {
             {topics.map((t) => (
               <section key={t} className="topic-group">
                 <div className="topic-head">
-                  <b>📂 {t}</b>
-                  <span className="muted">{qs.filter((q) => topicOf(q) === t).length} שאלות</span>
-                  <button className="btn small ghost" onClick={() => renameTopic(t)}>
-                    ✏️ שינוי שם
-                  </button>
+                  {renaming === t ? (
+                    <InlineInput
+                      label="📂"
+                      initial={t === NO_TOPIC ? '' : t}
+                      placeholder="שם הנושא"
+                      onSave={(name) => renameTopic(t, name)}
+                      onCancel={() => setRenaming(null)}
+                    />
+                  ) : (
+                    <>
+                      <b>📂 {t}</b>
+                      <span className="muted">{qs.filter((q) => topicOf(q) === t).length} שאלות</span>
+                      <button className="btn small ghost" onClick={() => setRenaming(t)}>
+                        ✏️ שינוי שם
+                      </button>
+                    </>
+                  )}
                   <span className="grow" />
                   <button className="btn small" onClick={() => addQuestion(t)}>
                     + שאלה בנושא
@@ -185,9 +206,13 @@ export default function BankPanel({ pw }) {
           </div>
 
           <div className="admin-save">
-            <button className="btn" onClick={addTopic}>
-              + נושא חדש
-            </button>
+            {adding === 'topic' ? (
+              <InlineInput label="נושא חדש:" placeholder="שם הנושא" saveText="הוספה" onSave={addTopic} onCancel={() => setAdding(null)} />
+            ) : (
+              <button className="btn" onClick={() => setAdding('topic')}>
+                + נושא חדש
+              </button>
+            )}
             <button className="btn" onClick={() => addQuestion()}>
               + שאלה
             </button>

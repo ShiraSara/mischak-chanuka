@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
+import InlineInput from './InlineInput.jsx';
 
 const fmt = (t) => (t ? new Date(t).toLocaleDateString('he-IL') : '');
 const DAYS = [[1, '24 שעות'], [7, 'שבוע'], [30, 'חודש'], [0, 'ללא הגבלה']];
@@ -34,6 +35,7 @@ export default function CodesPanel({ pw }) {
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(null); // { code, field }
 
   const load = useCallback(() => adminApi('/api/admin/codes', pw).then((r) => setCodes(r.codes)), [pw]);
   useEffect(() => {
@@ -62,25 +64,25 @@ export default function CodesPanel({ pw }) {
     setCopied(true);
   };
 
+  // עריכה בתוך השורה (ימים / משחקים / מכסת תמונות)
+  const saveEdit = async (c, field, d) => {
+    setEditing(null);
+    const url = '/api/admin/codes/' + c.code;
+    try {
+      if (field === 'days') await adminApi(url, pw, 'PATCH', { addDays: Number(d) || 0 });
+      if (field === 'games') await adminApi(url, pw, 'PATCH', { maxGames: Number(d) || 0 });
+      if (field === 'ai') await adminApi(url, pw, 'PATCH', { aiLimit: d === '' ? null : Number(d) });
+      load();
+    } catch (er) {
+      alert(er.message);
+    }
+  };
+
   const action = async (c, a) => {
     const url = '/api/admin/codes/' + c.code;
     try {
       if (a === 'toggle') await adminApi(url, pw, 'PATCH', { active: !c.active });
-      if (a === 'days') {
-        const d = prompt('כמה ימים להוסיף? (0 = ללא הגבלה)', '30');
-        if (d === null) return;
-        await adminApi(url, pw, 'PATCH', { addDays: Number(d) });
-      }
-      if (a === 'games') {
-        const d = prompt('מספר משחקים כולל (0 = ללא הגבלה). כרגע נוצלו ' + c.games_used, c.max_games || 0);
-        if (d === null) return;
-        await adminApi(url, pw, 'PATCH', { maxGames: Number(d) });
-      }
-      if (a === 'ai') {
-        const d = prompt('כמה קריאות תמונה בחודש לקוד הזה? (ריק = ברירת המחדל, 0 = חסום)', c.ai_limit ?? '');
-        if (d === null) return;
-        await adminApi(url, pw, 'PATCH', { aiLimit: d.trim() === '' ? null : Number(d) });
-      }
+      if (['days', 'games', 'ai'].includes(a)) return setEditing({ code: c.code, field: a });
       if (a === 'del') {
         if (!confirm('למחוק את הקוד ' + c.code + '?')) return;
         await adminApi(url, pw, 'DELETE');
@@ -173,6 +175,16 @@ export default function CodesPanel({ pw }) {
                   </div>
                 </div>
                 <div className="acts">
+                  {editing?.code === c.code && (
+                    <InlineInput
+                      type="number"
+                      width={90}
+                      label={{ days: 'כמה ימים להוסיף? (0 = ללא הגבלה)', games: `מספר משחקים כולל (0 = ללא הגבלה), נוצלו ${c.games_used}`, ai: 'קריאות תמונה בחודש (ריק = ברירת מחדל)' }[editing.field]}
+                      initial={{ days: 30, games: c.max_games || 0, ai: c.ai_limit ?? '' }[editing.field]}
+                      onSave={(d) => saveEdit(c, editing.field, d)}
+                      onCancel={() => setEditing(null)}
+                    />
+                  )}
                   <button className="btn small" onClick={() => action(c, 'days')}>+ימים</button>
                   <button className="btn small" onClick={() => action(c, 'games')}>משחקים</button>
                   <button className="btn small" onClick={() => action(c, 'ai')}>📷 מכסה</button>

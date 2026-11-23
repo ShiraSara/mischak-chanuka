@@ -61,3 +61,10 @@
 .aq-answers .muted { font-size: .88rem; }
 .aq-answer { border: 0 !important; background: transparent !important; padding: 0 2px !important; font: inherit; font-weight: 700; width: auto !important; box-shadow: none !important; }
 .admin-save { position: sticky; bottom: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #fff; padding: 14px 0 4px; margin-top: 14px; border-top: 2.5px dashed var(--line); }
+
+/* שדה בתוך הדף (במקום חלון קופץ) */
+.inline-input { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.inline-input .lbl { font-weight: 700; font-size: .9rem; }
+.inline-input input { padding: 6px 10px !important; }
+.bank-card.editing { cursor: default; gap: 8px; }
+.ad-code .acts { align-items: center; }
