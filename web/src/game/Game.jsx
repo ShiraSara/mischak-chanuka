@@ -167,7 +167,7 @@ export default function Game({ gameId, me, onExit }) {
     if (phase === 'question') content = <QuestionView state={view} clockOffset={clockOffset} soundOn={soundOn} />;
     else if (phase === 'results') content = <ResultsView key={'r' + view.game.qIndex} state={view} soundOn={soundOn} />;
     else if (phase === 'board') content = <BoardView state={view} soundOn={soundOn} />;
-    else if (phase === 'ended') content = <SummaryView state={view} />;
+    else if (phase === 'ended') content = <SummaryView state={view} soundOn={soundOn} />;
   }
 
   return (

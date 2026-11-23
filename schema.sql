@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS games (
   phase TEXT DEFAULT 'lobby',      -- lobby | question | results | ended
   q_started_at INTEGER,
   settings TEXT,                   -- JSON
-  questions TEXT                   -- JSON
+  questions TEXT,                  -- JSON
+  profiles TEXT                    -- JSON: סיכום אישי לכל משתתפת (נוצר בסוף המשחק)
 );
 CREATE TABLE IF NOT EXISTS players (
   game_id INTEGER NOT NULL,

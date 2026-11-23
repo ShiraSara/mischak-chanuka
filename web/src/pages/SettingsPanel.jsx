@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5, title: '' };
+export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5, title: '', profiles: true };
 
 const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 const HOLDS = [5, 8, 12, 20];
@@ -93,6 +93,7 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
           <ThemePicker />
         </div>
         {row('shuffle', '🔀 ערבוב סדר השאלות', 'בתוך כל נושא – השאלות יופיעו בסדר אקראי')}
+        {row('profiles', '✨ "מי את בעצם?" בסוף המשחק', 'כרטיס אישי לכל משתתפת עם משפט שנון שה-AI כותב לפי מה שהחבורה בחרה בה')}
         {row('allowSelfVote', '🙋‍♀️ מותר להצביע לעצמך', 'כשהתשובות הן שמות – אפשר לבחור גם בעצמך')}
         {row(
           'autoPlay',

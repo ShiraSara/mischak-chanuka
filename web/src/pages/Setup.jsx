@@ -93,6 +93,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
             autoPlay: settings.autoPlay,
             resultsSec: Number(settings.resultsSec) || 5,
             title: settings.title || '',
+            profiles: settings.profiles !== false,
           },
         },
       });

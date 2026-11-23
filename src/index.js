@@ -2,6 +2,7 @@ import { EXAMPLE_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
+import { makeProfiles } from './profiles.js';
 
 const MAX_PLAYERS = 15;
 const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
@@ -139,6 +140,7 @@ async function loadGame(env, id) {
   const g = await env.DB.prepare('SELECT * FROM games WHERE id = ?').bind(id).first();
   if (!g) return null;
   g.settings = JSON.parse(g.settings || '{}');
+  if (typeof g.profiles !== 'string') g.profiles = g.profiles ?? null;
   g.questions = JSON.parse(g.questions || '[]');
   return g;
 }
@@ -352,6 +354,7 @@ function cleanSettings(s, base = {}) {
     autoPlay: !!v.autoPlay,
     resultsSec: Math.max(3, Math.min(60, Number(v.resultsSec) || 5)),
     title: String(v.title || '').trim().slice(0, 60), // שם המשחק (לא חובה)
+    profiles: v.profiles !== false, // "מי את בעצם?" בסוף המשחק
   };
 }
 
@@ -705,11 +708,23 @@ async function hostRoutes(req, env, path, method, c) {
     return json({ id });
   }
 
-  const m = path.match(/^\/api\/games\/(\d+)(\/action|\/sim)?$/);
+  const m = path.match(/^\/api\/games\/(\d+)(\/action|\/sim|\/profiles)?$/);
   if (m) {
     const g = await loadGame(env, Number(m[1]));
     if (!g || g.code !== c.code) return err('המשחק לא נמצא', 404);
     if (!m[2] && method === 'GET') return json(await gameState(env, g));
+    // "מי את בעצם?" – נוצר פעם אחת ונשמר (אפשר לבקש מחדש)
+    if (m[2] === '/profiles' && method === 'POST') {
+      const { regenerate } = await body(req);
+      const cached = g.profiles ? JSON.parse(g.profiles) : null;
+      if (cached && !regenerate && cached.ai) return json(cached);
+      const players = await loadPlayers(env, g.id);
+      const { results: votes } = await env.DB.prepare('SELECT q_index, num, choice FROM votes WHERE game_id = ?').bind(g.id).all();
+      const out = await makeProfiles(env, g, players, votes);
+      // שומרים רק תוצאה של AI; אם נפל – ננסה שוב בפעם הבאה
+      if (out.ai) await env.DB.prepare('UPDATE games SET profiles = ? WHERE id = ?').bind(JSON.stringify(out), g.id).run();
+      return json(out);
+    }
     if (m[2] === '/action' && method === 'POST') {
       const { action, settings } = await body(req);
       const problem = await gameAction(env, g, action, { settings });

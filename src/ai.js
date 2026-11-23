@@ -106,33 +106,14 @@ export class AiError extends Error {}
 
 export const aiEnabled = (env) => !!env.GEMINI_API_KEY;
 
-export async function readQuestionsFromImages(env, images) {
-  if (!aiEnabled(env)) throw new AiError('קריאת תמונות עוד לא הופעלה באתר (חסר מפתח API)');
-  if (!Array.isArray(images) || !images.length) throw new AiError('לא נבחרה תמונה');
-  if (images.length > MAX_IMAGES) throw new AiError(`אפשר עד ${MAX_IMAGES} תמונות בכל פעם`);
-
-  const parts = [];
-  for (const img of images) {
-    const mimeType = String(img?.mediaType || '');
-    const data = String(img?.data || '');
-    if (!MEDIA_TYPES.includes(mimeType)) throw new AiError('סוג קובץ לא נתמך – אפשר תמונה (JPG / PNG)');
-    if (!data || (data.length * 3) / 4 > MAX_IMAGE_BYTES) throw new AiError('התמונה גדולה מדי');
-    parts.push({ inlineData: { mimeType, data } });
-  }
-  parts.push({ text: 'העבר/י את השאלות מהדף לרשימה.' });
-
+// קריאה כללית ל-Gemini שמחזירה JSON לפי סכמה – עם ניסיונות חוזרים ודגמים חלופיים כשיש עומס
+export async function generateJson(env, { parts, system, schema, maxOutputTokens = 8192, what = 'להשלים את הבקשה' }) {
+  if (!aiEnabled(env)) throw new AiError('ה-AI לא הופעל באתר (חסר מפתח Gemini)');
   const ai = new GoogleGenAI({
     apiKey: env.GEMINI_API_KEY,
     ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}),
   });
-
-  const config = {
-    systemInstruction: SYSTEM,
-    responseMimeType: 'application/json',
-    responseJsonSchema: SCHEMA,
-    maxOutputTokens: 8192,
-  };
-  const primary = env.GEMINI_MODEL || DEFAULT_MODEL;
+  const config = { systemInstruction: system, responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens };
   const models = await chooseModels(ai, env);
   if (!models.length) throw new AiError('לא נמצא דגם Gemini זמין למפתח הזה – צריך לבדוק את המפתח ב-AI Studio');
 
@@ -153,10 +134,8 @@ export async function readQuestionsFromImages(env, images) {
           busyError = error;
           markBusy(model);
         }
-        // דגם שלא קיים / לא זמין בחשבון – עוברים לחלופי
-        if (error.status === 404) continue outer;
+        if (error.status === 404) continue outer; // דגם שלא זמין בחשבון – לחלופי
         if (!busy) break outer;
-        // עומס – המתנה הולכת וגדלה, ואחרי 3 ניסיונות עוברים לדגם הבא
         if (attempt < ATTEMPTS_PER_MODEL) await new Promise((r) => setTimeout(r, 800));
       }
     }
@@ -170,20 +149,36 @@ export async function readQuestionsFromImages(env, images) {
       throw new AiError('מפתח ה-API לא תקין – צריך לבדוק אותו בהגדרות' + detail);
     if (error.status === 429) throw new AiError('הגענו למכסה של Gemini כרגע – נסי שוב בעוד דקה' + detail);
     if (error.status === 404) throw new AiError('דגם ה-AI שהוגדר לא קיים – צריך לעדכן את GEMINI_MODEL' + detail);
-    throw new AiError('לא הצלחתי לקרוא את התמונה' + detail);
+    throw new AiError(`לא הצלחתי ${what}` + detail);
   }
 
-  if (response.promptFeedback?.blockReason) throw new AiError('לא ניתן היה לקרוא את התמונה הזו');
+  if (response.promptFeedback?.blockReason) throw new AiError(`לא הצלחתי ${what}`);
   const finish = response.candidates?.[0]?.finishReason;
-  if (finish === 'MAX_TOKENS') throw new AiError('יש בדף יותר מדי טקסט – נסי לצלם חלק ממנו');
-  if (finish && finish !== 'STOP') throw new AiError('לא ניתן היה לקרוא את התמונה הזו');
-
-  let parsed;
+  if (finish === 'MAX_TOKENS') throw new AiError(`התשובה ארוכה מדי – לא הצלחתי ${what}`);
+  if (finish && finish !== 'STOP') throw new AiError(`לא הצלחתי ${what}`);
   try {
-    parsed = JSON.parse(response.text || '');
+    return JSON.parse(response.text || '');
   } catch {
-    throw new AiError('לא הצלחתי לקרוא את השאלות – נסי שוב');
+    throw new AiError(`לא הצלחתי ${what} – נסי שוב`);
   }
+}
+
+export async function readQuestionsFromImages(env, images) {
+  if (!aiEnabled(env)) throw new AiError('קריאת תמונות עוד לא הופעלה באתר (חסר מפתח API)');
+  if (!Array.isArray(images) || !images.length) throw new AiError('לא נבחרה תמונה');
+  if (images.length > MAX_IMAGES) throw new AiError(`אפשר עד ${MAX_IMAGES} תמונות בכל פעם`);
+
+  const parts = [];
+  for (const img of images) {
+    const mimeType = String(img?.mediaType || '');
+    const data = String(img?.data || '');
+    if (!MEDIA_TYPES.includes(mimeType)) throw new AiError('סוג קובץ לא נתמך – אפשר תמונה (JPG / PNG)');
+    if (!data || (data.length * 3) / 4 > MAX_IMAGE_BYTES) throw new AiError('התמונה גדולה מדי');
+    parts.push({ inlineData: { mimeType, data } });
+  }
+  parts.push({ text: 'העבר/י את השאלות מהדף לרשימה.' });
+
+  const parsed = await generateJson(env, { parts, system: SYSTEM, schema: SCHEMA, maxOutputTokens: 8192, what: 'לקרוא את התמונה' });
 
   const questions = (Array.isArray(parsed.questions) ? parsed.questions : [])
     .map((q) => ({
