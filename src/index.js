@@ -1,6 +1,6 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
-import { readQuestionsFromImages, AiError } from './ai.js';
+import { readQuestionsFromImages, AiError, aiEnabled } from './ai.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20;
@@ -702,7 +702,7 @@ function aiQuota(env, c) {
   const month = new Date().toISOString().slice(0, 7);
   const limit = c.ai_limit ?? (Number(env.AI_DEFAULT_LIMIT) || 20);
   const used = c.ai_month === month ? c.ai_used || 0 : 0;
-  return { enabled: !!env.ANTHROPIC_API_KEY, limit, used, left: Math.max(0, limit - used), month };
+  return { enabled: aiEnabled(env), limit, used, left: Math.max(0, limit - used), month };
 }
 
 async function adminRoutes(req, env, path, method) {

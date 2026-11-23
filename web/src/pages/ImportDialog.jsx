@@ -4,7 +4,7 @@ import { compressImage, parsePastedQuestions } from '../lib/image.js';
 
 const MAX_IMAGES = 3;
 
-// חלון ייבוא שאלות: מתמונה של דף (Claude קורא אותה) או מהדבקת טקסט
+// חלון ייבוא שאלות: מתמונה של דף (Gemini קורא אותה) או מהדבקת טקסט
 export default function ImportDialog({ ai, onClose, onAdd, onUsed }) {
   const [tab, setTab] = useState(ai?.enabled ? 'image' : 'text');
   const [images, setImages] = useState([]);
