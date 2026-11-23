@@ -140,7 +140,8 @@ function QuestionRow({ q, onChange, onRemove }) {
   };
   const toggleType = () => {
     const type = q.type === 'names' ? 'options' : 'names';
-    onChange({ type, options: type === 'options' && !q.options.length ? ['כן', 'לא'] : q.options });
+    // לשאלת שמות מתחילים בלי תשובות נוספות; לשאלה עם תשובות קבועות – כן/לא כהתחלה
+    onChange({ type, options: type === 'options' ? (q.options.length ? q.options : ['כן', 'לא']) : [] });
   };
 
   return (
@@ -161,11 +162,12 @@ function QuestionRow({ q, onChange, onRemove }) {
           <button className={`su-type ${q.type === 'options' ? 'opt' : ''}`} onClick={toggleType} title="לחצי להחלפה">
             {q.type === 'names' ? '👥 התשובות: שמות המשתתפות' : '🔘 התשובות: אפשרויות קבועות'}
           </button>
-          {q.type === 'options' && (
+          {(
             <div className="su-chips">
+              {q.type === 'names' && q.options.length > 0 && <span className="muted" style={{ fontSize: '.85rem' }}>+ בנוסף לשמות:</span>}
               {q.options.map((o, i) => (
-                <span className="su-chip" key={i}>
-                  <b style={{ fontWeight: 900 }}>{i + 1}</b> {o}
+                <span className={`su-chip ${q.type === 'names' ? 'extra' : ''}`} key={i}>
+                  {q.type === 'options' && <b style={{ fontWeight: 900 }}>{i + 1}</b>} {o}
                   <button title="הסרה" onClick={() => onChange({ options: q.options.filter((_, j) => j !== i) })}>
                     ✕
                   </button>
@@ -175,7 +177,7 @@ function QuestionRow({ q, onChange, onRemove }) {
                 className="su-chip-input"
                 type="text"
                 value={draft}
-                placeholder="+ תשובה (Enter)"
+                placeholder={q.type === 'names' ? '+ תשובה נוספת, למשל "אף אחת"' : '+ תשובה (Enter)'}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
                 onBlur={addOption}

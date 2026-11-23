@@ -4,6 +4,7 @@ import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
 
 const MAX_PLAYERS = 15;
+const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
 const READ_SEC = 20;
 const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו // כמה שניות המערכת הטלפונית מחכה להקשה לפני שהיא שואלת שוב
 
@@ -62,17 +63,15 @@ async function body(req) {
 function cleanQuestions(list) {
   if (!Array.isArray(list)) return [];
   return list
-    .map((q) => ({
-      text: String(q.text || '').trim().slice(0, 300),
-      type: q.type === 'options' ? 'options' : 'names',
-      options:
-        q.type === 'options'
-          ? (Array.isArray(q.options) ? q.options : [])
-              .map((o) => String(o || '').trim().slice(0, 80))
-              .filter(Boolean)
-              .slice(0, MAX_PLAYERS)
-          : [],
-    }))
+    .map((q) => {
+      const type = q.type === 'options' ? 'options' : 'names';
+      // בשאלת שמות – options הן תשובות נוספות מעבר לשמות (למשל "אף אחת")
+      const options = (Array.isArray(q.options) ? q.options : [])
+        .map((o) => String(o || '').trim().slice(0, 80))
+        .filter(Boolean)
+        .slice(0, type === 'options' ? MAX_PLAYERS : MAX_EXTRA);
+      return { text: String(q.text || '').trim().slice(0, 300), type, options, topic: String(q.topic || '').trim().slice(0, 60) };
+    })
     .filter((q) => q.text && (q.type === 'names' || q.options.length >= 2));
 }
 
@@ -152,7 +151,14 @@ async function loadPlayers(env, gameId) {
 
 function optionsFor(q, players) {
   if (!q) return [];
-  if (q.type === 'names') return players.map((p) => ({ n: p.num, label: p.name }));
+  if (q.type === 'names') {
+    // השמות, ואחריהם התשובות הנוספות (ממוספרות אחרי המשתתפת האחרונה)
+    const last = players.reduce((m, p) => Math.max(m, p.num), 0);
+    return [
+      ...players.map((p) => ({ n: p.num, label: p.name })),
+      ...(q.options || []).map((label, i) => ({ n: last + i + 1, label, extra: true })),
+    ];
+  }
   return q.options.map((label, i) => ({ n: i + 1, label }));
 }
 
