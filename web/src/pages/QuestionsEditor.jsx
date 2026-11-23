@@ -1,20 +1,26 @@
 import { useState } from 'react';
 import { api, shuffle, withId } from '../lib/api.js';
 
-// רשימת השאלות: בחירה, עריכה, הוספה, מחיקה ושמירה כמאגר אישי
+// שלב 2: בחירת שאלות, עריכה, הוספה ושמירה כמאגר אישי
 export default function QuestionsEditor({ questions, setQuestions, custom, setCustom }) {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all'); // all | on
   const [randomN, setRandomN] = useState(15);
-  const [savedMsg, setSavedMsg] = useState('');
+  const [msg, setMsg] = useState('');
 
-  const update = (i, patch) => setQuestions(questions.map((q, j) => (j === i ? { ...q, ...patch } : q)));
+  const update = (id, patch) => setQuestions(questions.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+  const remove = (id) => setQuestions(questions.filter((q) => q.id !== id));
   const setAll = (on) => setQuestions(questions.map((q) => ({ ...q, on })));
   const pickRandom = () => {
     const n = Math.max(1, Number(randomN) || 10);
-    const chosen = new Set(shuffle(questions.map((_, i) => i)).slice(0, n));
-    setQuestions(questions.map((q, i) => ({ ...q, on: chosen.has(i) })));
+    const chosen = new Set(shuffle(questions.map((q) => q.id)).slice(0, n));
+    setQuestions(questions.map((q) => ({ ...q, on: chosen.has(q.id) })));
   };
-  const add = () => setQuestions([withId({ text: '', type: 'names', options: [], on: true, isNew: true }), ...questions]);
-  const remove = (i) => setQuestions(questions.filter((_, j) => j !== i));
+  const add = () => {
+    setSearch('');
+    setFilter('all');
+    setQuestions([withId({ text: '', type: 'names', options: [], on: true, isNew: true }), ...questions]);
+  };
 
   const save = async () => {
     try {
@@ -22,7 +28,7 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
       const onTexts = new Set(questions.filter((q) => q.on).map((q) => q.text.trim()));
       setQuestions(r.questions.map((q) => withId({ ...q, on: onTexts.has(q.text) })));
       setCustom(true);
-      setSavedMsg('✓ השאלות נשמרו. בפעם הבאה שתיכנסי עם הקוד הן יופיעו כך.');
+      setMsg('✓ נשמר! בפעם הבאה שתיכנסי עם הקוד השאלות יופיעו כך');
     } catch (er) {
       alert(er.message);
     }
@@ -32,78 +38,130 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
     const r = await api('/api/questions', { method: 'DELETE' });
     setQuestions(r.questions.map((q) => withId({ ...q, on: true })));
     setCustom(false);
-    setSavedMsg('');
+    setMsg('');
   };
 
   const onCount = questions.filter((q) => q.on).length;
+  const s = search.trim();
+  const shown = questions.filter((q) => (filter === 'all' || q.on) && (!s || q.text.includes(s) || q.isNew));
 
   return (
-    <div className="card">
-      <h2>
-        <span className="step">2</span>השאלות
-      </h2>
-      <div className="row q-tools">
+    <div className="su-card">
+      <div className="su-card-head">
+        <div>
+          <h2>אילו שאלות במשחק?</h2>
+          <p>מסמנים את השאלות שרוצים. אפשר ללחוץ על כל שאלה ולשנות את הנוסח.</p>
+        </div>
+        <span className="su-count">{onCount} נבחרו</span>
+      </div>
+
+      <div className="su-qbar">
+        <div className="su-search">
+          <span className="ic">🔍</span>
+          <input type="text" placeholder="חיפוש שאלה…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <div className="su-seg">
+          <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>
+            הכל ({questions.length})
+          </button>
+          <button className={filter === 'on' ? 'on' : ''} onClick={() => setFilter('on')}>
+            נבחרו ({onCount})
+          </button>
+        </div>
+        <button className="btn gold" onClick={add}>
+          + שאלה חדשה
+        </button>
+      </div>
+
+      <div className="su-qtools">
         <button className="btn small" onClick={() => setAll(true)}>סימון הכל</button>
-        <button className="btn small" onClick={() => setAll(false)}>ביטול הכל</button>
-        <button className="btn small" onClick={pickRandom}>בחירה אקראית של</button>
-        <input type="number" value={randomN} min="1" style={{ width: 80 }} onChange={(e) => setRandomN(e.target.value)} />
-        <button className="btn small" onClick={add}>+ הוספת שאלה</button>
-        <span className="grow" />
-        <button className="btn small" onClick={save}>שמירת השאלות שלי</button>
-        <button className="btn small ghost" onClick={reset}>החזרת מאגר ברירת המחדל</button>
+        <button className="btn small" onClick={() => setAll(false)}>ניקוי הסימון</button>
+        <span className="muted" style={{ marginInlineStart: 8 }}>🎲 בחירה אקראית של</span>
+        <input type="number" min="1" value={randomN} onChange={(e) => setRandomN(e.target.value)} style={{ width: 70, padding: '6px 8px' }} />
+        <button className="btn small" onClick={pickRandom}>שאלות</button>
       </div>
-      <p className="muted" style={{ margin: '0 0 8px' }}>
-        נבחרו {onCount} מתוך {questions.length} שאלות
-      </p>
-      <div className="q-list">
-        {questions.map((q, i) => (
-          <QuestionRow key={q.id} q={q} onChange={(patch) => update(i, patch)} onRemove={() => remove(i)} />
+
+      <div className="su-qlist">
+        {shown.map((q) => (
+          <QuestionRow key={q.id} q={q} onChange={(patch) => update(q.id, patch)} onRemove={() => remove(q.id)} />
         ))}
+        {!shown.length && <div className="su-empty">{filter === 'on' ? 'עוד לא נבחרו שאלות' : 'לא נמצאו שאלות'}</div>}
       </div>
-      <p className="muted" style={{ margin: '8px 0 0' }}>
-        {savedMsg || (custom ? 'מוצג המאגר האישי ששמרת.' : 'מוצג מאגר השאלות הכללי.')}
-      </p>
+
+      <div className="su-qfoot">
+        <span className="muted" style={{ fontSize: '.92rem' }}>
+          {custom ? '📁 מוצג המאגר האישי ששמרת' : '📁 מוצג מאגר השאלות הכללי'}
+        </span>
+        <span className="grow" style={{ flex: 1 }} />
+        {msg && <span className="msg">{msg}</span>}
+        <button className="btn small" onClick={save}>💾 שמירת השאלות לפעם הבאה</button>
+        {custom && (
+          <button className="btn small ghost" onClick={reset}>
+            חזרה למאגר הכללי
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 function QuestionRow({ q, onChange, onRemove }) {
-  // שדה האפשרויות נשמר כטקסט חופשי בזמן ההקלדה, ומפוצל לפי פסיקים
-  const [optText, setOptText] = useState(q.options.join(', '));
+  const [draft, setDraft] = useState('');
 
-  const setType = (type) => {
-    const options = type === 'options' && !q.options.length ? ['כן', 'לא'] : q.options;
-    setOptText(options.join(', '));
-    onChange({ type, options });
+  const addOption = () => {
+    const v = draft.trim();
+    if (!v) return;
+    onChange({ options: [...q.options, v] });
+    setDraft('');
+  };
+  const toggleType = () => {
+    const type = q.type === 'names' ? 'options' : 'names';
+    onChange({ type, options: type === 'options' && !q.options.length ? ['כן', 'לא'] : q.options });
   };
 
   return (
-    <div className={`q-item ${q.on ? '' : 'off'}`}>
-      <input type="checkbox" checked={q.on} title="לכלול במשחק" onChange={(e) => onChange({ on: e.target.checked })} />
-      <div className="q-edit">
-        <input type="text" value={q.text} autoFocus={q.isNew} onChange={(e) => onChange({ text: e.target.value, isNew: false })} />
-        <div className="row">
-          <select value={q.type} style={{ width: 'auto' }} onChange={(e) => setType(e.target.value)}>
-            <option value="names">התשובות: שמות המשתתפות</option>
-            <option value="options">התשובות: אפשרויות קבועות</option>
-          </select>
+    <div className={`su-q ${q.on ? 'on' : ''}`}>
+      <button className="su-tick" title={q.on ? 'להוציא מהמשחק' : 'לכלול במשחק'} onClick={() => onChange({ on: !q.on })}>
+        {q.on ? '✓' : ''}
+      </button>
+      <div>
+        <input
+          className="su-q-text"
+          type="text"
+          value={q.text}
+          placeholder="כתבי כאן את השאלה…"
+          autoFocus={q.isNew}
+          onChange={(e) => onChange({ text: e.target.value, isNew: false })}
+        />
+        <div className="su-q-meta">
+          <button className={`su-type ${q.type === 'options' ? 'opt' : ''}`} onClick={toggleType} title="לחצי להחלפה">
+            {q.type === 'names' ? '👥 התשובות: שמות המשתתפות' : '🔘 התשובות: אפשרויות קבועות'}
+          </button>
           {q.type === 'options' && (
-            <input
-              type="text"
-              className="grow"
-              style={{ width: 'auto' }}
-              value={optText}
-              placeholder="אפשרויות מופרדות בפסיק: קפה, תה, שניהם"
-              onChange={(e) => {
-                setOptText(e.target.value);
-                onChange({ options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) });
-              }}
-            />
+            <div className="su-chips">
+              {q.options.map((o, i) => (
+                <span className="su-chip" key={i}>
+                  <b style={{ fontWeight: 900 }}>{i + 1}</b> {o}
+                  <button title="הסרה" onClick={() => onChange({ options: q.options.filter((_, j) => j !== i) })}>
+                    ✕
+                  </button>
+                </span>
+              ))}
+              <input
+                className="su-chip-input"
+                type="text"
+                value={draft}
+                placeholder="+ תשובה (Enter)"
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                onBlur={addOption}
+              />
+            </div>
           )}
         </div>
       </div>
-      <button className="btn small danger" title="מחיקה" onClick={onRemove}>
-        ✕
+      <button className="su-x" title="מחיקת השאלה" onClick={onRemove}>
+        🗑
       </button>
     </div>
   );

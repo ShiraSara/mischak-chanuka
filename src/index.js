@@ -282,6 +282,8 @@ function msgCmd(messages) {
 }
 
 const HANGUP = 'go_to_folder=hangup';
+// "הודעה" ריקה – המערכת לא אומרת כלום, רק מחכה להקשה
+const SILENT = 't-';
 
 export async function handleYemot(env, params) {
   if (params.hangup === 'yes') return '';
@@ -309,43 +311,41 @@ export async function handleYemot(env, params) {
       .bind(call.call_id, call.game_id, call.num, call.stage, 0, '', now())
       .run();
 
-    if (call.stage === 'play') return await playTurn(env, call, null, true);
-    return await ask(env, call, [tts('שלום ברוכות הבאות למשחק הסקר הקישו את קוד המשחק שמופיע על המסך')], {
-      max: 4,
-      min: 4,
-    });
+    if (call.stage === 'play') return await playTurn(env, call, null);
+    // מספר לא מזוהה: שקט, מחכים לקוד המשחק (4 ספרות) שמופיע על המסך
+    return await ask(env, call, [SILENT], { max: 4, min: 4 });
   }
 
   const raw = params['v' + call.step];
   const value = raw === undefined || raw === 'None' || raw === '' ? null : String(raw).replace(/\D/g, '');
 
   if (call.stage === 'pin') {
-    if (!value) return await ask(env, call, [tts('הקישו את קוד המשחק בן ארבע הספרות')], { max: 4, min: 4 });
+    if (!value) return await ask(env, call, [SILENT], { max: 4, min: 4 });
     const g = await env.DB.prepare(
       "SELECT id FROM games WHERE pin = ? AND status != 'ended' AND created_at > ? ORDER BY id DESC LIMIT 1"
     )
       .bind(value, now() - 24 * 3600 * 1000)
       .first();
-    if (!g) return await ask(env, call, [tts('הקוד שגוי נסו שוב')], { max: 4, min: 4 });
+    if (!g) return await ask(env, call, [tts('קוד שגוי')], { max: 4, min: 4 });
     call.game_id = g.id;
     call.stage = 'who';
     await env.DB.prepare('UPDATE calls SET game_id = ?, stage = ? WHERE call_id = ?').bind(g.id, 'who', callId).run();
-    return await ask(env, call, [tts('הקישו את המספר שלכן ברשימת המשתתפות ואחריו סולמית')]);
+    return await ask(env, call, [tts('הקישו את המספר שלכן')]);
   }
 
   if (call.stage === 'who') {
-    if (!value) return await ask(env, call, [tts('הקישו את המספר שלכן ברשימה ואחריו סולמית')]);
+    if (!value) return await ask(env, call, [SILENT]);
     const p = await env.DB.prepare('SELECT * FROM players WHERE game_id = ? AND num = ?')
       .bind(call.game_id, Number(value))
       .first();
-    if (!p) return await ask(env, call, [tts('המספר לא נמצא ברשימה נסו שוב')]);
+    if (!p) return await ask(env, call, [tts('מספר לא קיים')]);
     call.num = p.num;
     call.stage = 'play';
     await env.DB.prepare('UPDATE calls SET num = ?, stage = ? WHERE call_id = ?').bind(p.num, 'play', callId).run();
-    return await playTurn(env, call, null, true);
+    return await playTurn(env, call, null);
   }
 
-  return await playTurn(env, call, value, false);
+  return await playTurn(env, call, value);
 }
 
 async function ask(env, call, messages, opts, prefix = '') {
@@ -354,7 +354,7 @@ async function ask(env, call, messages, opts, prefix = '') {
   return (prefix ? prefix + '&' : '') + readCmd(messages, 'v' + call.step, opts);
 }
 
-async function playTurn(env, call, value, isNew) {
+async function playTurn(env, call, value) {
   const g = await loadGame(env, call.game_id);
   if (!g) return msgCmd([tts('המשחק לא נמצא')]) + '&' + HANGUP;
   const player = await env.DB.prepare('SELECT * FROM players WHERE game_id = ? AND num = ?')
@@ -367,21 +367,19 @@ async function playTurn(env, call, value, isNew) {
 
   if (g.phase === 'ended') return msgCmd([tts('המשחק הסתיים תודה ולהתראות')]) + '&' + HANGUP;
 
-  const pre = [];
-  if (isNew) pre.push(tts(`שלום ${player.name} הצטרפת למשחק`));
-
-  // הקשה של תשובה
+  // מצב שקט: אין פתיח ואין הודעות המתנה. מדברים רק אחרי הקשה – אישור קצר או הודעת שגיאה.
+  const say = [];
   if (value) {
     if (g.phase !== 'question') {
-      pre.push(tts(g.phase === 'lobby' ? 'המשחק עוד לא התחיל' : 'ההצבעה לשאלה הזו נסגרה'));
+      say.push(tts(g.phase === 'lobby' ? 'המשחק עוד לא התחיל' : 'ההצבעה נסגרה'));
     } else {
       const choice = Number(value);
       const players = await loadPlayers(env, g.id);
       const opts = optionsFor(g.questions[g.q_index], players);
       if (!opts.some((o) => o.n === choice)) {
-        pre.push(tts(`אין תשובה מספר`), `n-${choice}`, tts('נסו שוב'));
+        say.push(tts('אין מספר כזה'));
       } else if (g.settings.allowSelfVote === false && g.questions[g.q_index].type === 'names' && choice === call.num) {
-        pre.push(tts('אי אפשר להצביע לעצמך נסו שוב'));
+        say.push(tts('אי אפשר להצביע לעצמך'));
       } else {
         await env.DB.prepare(
           `INSERT INTO votes (game_id, q_index, num, choice, at) VALUES (?, ?, ?, ?, ?)
@@ -389,34 +387,11 @@ async function playTurn(env, call, value, isNew) {
         )
           .bind(g.id, g.q_index, call.num, choice, now())
           .run();
-        pre.push(tts('נקלט'), `n-${choice}`);
+        say.push(tts('נקלט'), `n-${choice}`);
       }
     }
   }
-
-  // ההודעה הבאה לפי מצב המשחק
-  let key, prompt;
-  if (g.phase === 'lobby') {
-    key = 'lobby';
-    prompt = 'כשהשאלה תופיע על המסך הקישו את מספר התשובה ואחריו סולמית';
-  } else if (g.phase === 'question') {
-    const mine = await env.DB.prepare('SELECT choice FROM votes WHERE game_id = ? AND q_index = ? AND num = ?')
-      .bind(g.id, g.q_index, call.num)
-      .first();
-    key = `q${g.q_index}-${mine ? 'voted' : 'open'}`;
-    prompt = mine
-      ? 'אפשר לשנות את התשובה עד שהתוצאות יוצגו'
-      : `שאלה ${g.q_index + 1} הקישו את מספר התשובה ואחריו סולמית`;
-  } else {
-    key = `r${g.q_index}`;
-    prompt = 'ממתינים לשאלה הבאה';
-  }
-  // אם לא השתנה כלום מאז הפעם הקודמת – הודעה קצרה בלבד
-  if (!value && !isNew && call.last_key === key) prompt = key.startsWith('q') && key.endsWith('open') ? 'הקישו תשובה' : 'ממתינים';
-  if (call.last_key !== key) {
-    await env.DB.prepare('UPDATE calls SET last_key = ? WHERE call_id = ?').bind(key, call.call_id).run();
-  }
-  return await ask(env, call, [...pre, tts(prompt)]);
+  return await ask(env, call, say.length ? say : [SILENT]);
 }
 
 async function yemotParams(req) {

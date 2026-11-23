@@ -9,7 +9,7 @@ function parseResponse(text) {
   let varName = null;
   let maxDigits = 99;
   let hangup = false;
-  const speak = (m) => m.split('.').map((x) => x.replace(/^[tn]-/, '')).join(' ');
+  const speak = (m) => m.split('.').map((x) => x.replace(/^[tn]-/, '')).join(' ').trim() || '🤫 (שקט – המערכת מחכה להקשה)';
   for (const part of text.split('&').filter(Boolean)) {
     const [cmd, ...rest] = part.split('=');
     if (cmd === 'id_list_message') lines.push(speak(rest.join('=')));
