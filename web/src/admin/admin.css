@@ -37,3 +37,8 @@
   .ad-code { grid-template-columns: 1fr; }
   .ad-code .acts { justify-content: flex-start; }
 }
+
+.ai-check code { direction: ltr; display: inline-block; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 1px 6px; border-radius: 6px; }
+.ai-status { font-weight: 800; padding: 10px 14px; border: 2.5px solid var(--ink); border-radius: 12px; margin-bottom: 10px; }
+.ai-status.ok { background: #dcfce7; }
+.ai-status.bad { background: #ffe3e5; }

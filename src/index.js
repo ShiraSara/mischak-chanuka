@@ -1,6 +1,6 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
-import { readQuestionsFromImages, AiError, aiEnabled } from './ai.js';
+import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20;
@@ -767,6 +767,8 @@ async function adminRoutes(req, env, path, method) {
       return json({ ok: true });
     }
   }
+
+  if (path === '/api/admin/ai-check' && method === 'POST') return json(await diagnose(env));
 
   if (path === '/api/admin/bank') {
     if (method === 'GET') return json({ questions: await getBank(env) });

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
 import CodesPanel from './CodesPanel.jsx';
 import BankPanel from './BankPanel.jsx';
+import AiCheckPanel from './AiCheckPanel.jsx';
 import '../pages/setup.css';
 import './admin.css';
 import { BRAND } from '../lib/theme.js';
@@ -72,6 +73,7 @@ export default function AdminApp() {
       </header>
       <main className="su-body ad-body">
         <CodesPanel pw={pw} />
+        <AiCheckPanel pw={pw} />
         <BankPanel pw={pw} />
       </main>
     </div>
