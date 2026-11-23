@@ -6,7 +6,10 @@ CREATE TABLE IF NOT EXISTS codes (
   max_games INTEGER,           -- NULL = ללא הגבלה
   games_used INTEGER DEFAULT 0,
   active INTEGER DEFAULT 1,
-  questions TEXT               -- JSON: מאגר השאלות האישי של הלקוחה (NULL = מאגר ברירת המחדל)
+  questions TEXT,              -- JSON: מאגר השאלות האישי של הלקוחה (NULL = מאגר ברירת המחדל)
+  ai_used INTEGER DEFAULT 0,   -- כמה קריאות תמונה נוצלו החודש
+  ai_month TEXT,               -- החודש של המונה (YYYY-MM)
+  ai_limit INTEGER             -- מגבלה חודשית (NULL = ברירת המחדל)
 );
 CREATE TABLE IF NOT EXISTS bank (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -188,3 +188,17 @@
   .su-player .su-x { grid-row: 1; grid-column: 3; }
   .su-card { padding: 20px 16px; box-shadow: 5px 5px 0 var(--c1); }
 }
+
+/* חלון ייבוא */
+.modal-back {
+  position: fixed; inset: 0; z-index: 100; background: color-mix(in srgb, var(--ink) 55%, transparent);
+  display: grid; place-items: center; padding: 16px; animation: su-in .2s ease-out;
+}
+.modal {
+  background: #fff; border: 3px solid var(--ink); border-radius: 24px; box-shadow: 8px 8px 0 var(--c1);
+  width: 100%; max-width: 760px; max-height: 92vh; overflow: auto; padding: 24px 26px;
+}
+.imp-thumbs { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.imp-thumb { position: relative; width: 140px; height: 180px; border: 2.5px solid var(--ink); border-radius: 12px; overflow: hidden; box-shadow: 3px 3px 0 var(--ink); }
+.imp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.imp-thumb .su-x { position: absolute; top: 6px; left: 6px; width: 34px; height: 34px; font-size: 1rem; }

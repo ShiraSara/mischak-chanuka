@@ -1,5 +1,6 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
+import { readQuestionsFromImages, AiError } from './ai.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20;
@@ -574,7 +575,30 @@ export default {
 
 async function hostRoutes(req, env, path, method, c) {
   if (path === '/api/me') {
-    return json({ label: c.label, gamesLeft: c.max_games ? c.max_games - c.games_used : null, phoneInfo: env.PHONE_INFO || '' });
+    return json({
+      label: c.label,
+      gamesLeft: c.max_games ? c.max_games - c.games_used : null,
+      phoneInfo: env.PHONE_INFO || '',
+      ai: aiQuota(env, c),
+    });
+  }
+
+  // קריאת שאלות מתמונה (Claude)
+  if (path === '/api/ai/import' && method === 'POST') {
+    const quota = aiQuota(env, c);
+    if (!quota.enabled) return err('קריאת תמונות עוד לא הופעלה באתר', 503);
+    if (quota.left <= 0) return err(`נוצלו כל ${quota.limit} הקריאות של החודש. אפשר לפנות אלינו להגדלה.`, 429);
+    const { images } = await body(req);
+    try {
+      const r = await readQuestionsFromImages(env, images);
+      await env.DB.prepare('UPDATE codes SET ai_used = ?, ai_month = ? WHERE code = ?')
+        .bind(quota.used + 1, quota.month, c.code)
+        .run();
+      return json({ questions: r.questions, note: r.note, left: quota.left - 1 });
+    } catch (e) {
+      if (e instanceof AiError) return err(e.message, 400);
+      throw e;
+    }
   }
 
   if (path === '/api/questions') {
@@ -673,15 +697,27 @@ async function hostRoutes(req, env, path, method, c) {
   return err('לא נמצא', 404);
 }
 
+// מכסת קריאות תמונה חודשית לקוד
+function aiQuota(env, c) {
+  const month = new Date().toISOString().slice(0, 7);
+  const limit = c.ai_limit ?? (Number(env.AI_DEFAULT_LIMIT) || 20);
+  const used = c.ai_month === month ? c.ai_used || 0 : 0;
+  return { enabled: !!env.ANTHROPIC_API_KEY, limit, used, left: Math.max(0, limit - used), month };
+}
+
 async function adminRoutes(req, env, path, method) {
   if (!adminAuth(req, env)) return err('סיסמת ניהול שגויה (או שלא הוגדרה סיסמה)', 401);
 
   if (path === '/api/admin/codes') {
     if (method === 'GET') {
       const { results } = await env.DB.prepare(
-        'SELECT code, label, created_at, expires_at, max_games, games_used, active FROM codes ORDER BY created_at DESC'
+        'SELECT code, label, created_at, expires_at, max_games, games_used, active, ai_used, ai_month, ai_limit FROM codes ORDER BY created_at DESC'
       ).all();
-      return json({ codes: results });
+      const month = new Date().toISOString().slice(0, 7);
+      const def = Number(env.AI_DEFAULT_LIMIT) || 20;
+      return json({
+        codes: results.map((r) => ({ ...r, ai_used: r.ai_month === month ? r.ai_used || 0 : 0, ai_limit_effective: r.ai_limit ?? def })),
+      });
     }
     if (method === 'POST') {
       const b = await body(req);
@@ -718,6 +754,7 @@ async function adminRoutes(req, env, path, method) {
       }
       if ('maxGames' in b) (sets.push('max_games = ?'), vals.push(Number(b.maxGames) || null));
       if ('resetUsed' in b) sets.push('games_used = 0');
+      if ('aiLimit' in b) (sets.push('ai_limit = ?'), vals.push(b.aiLimit === null || b.aiLimit === '' ? null : Math.max(0, Number(b.aiLimit) || 0)));
       if (!sets.length) return err('אין שינויים');
       await env.DB.prepare(`UPDATE codes SET ${sets.join(', ')} WHERE code = ?`).bind(...vals, cm[1]).run();
       return json({ ok: true });

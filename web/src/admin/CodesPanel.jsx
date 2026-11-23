@@ -76,6 +76,11 @@ export default function CodesPanel({ pw }) {
         if (d === null) return;
         await adminApi(url, pw, 'PATCH', { maxGames: Number(d) });
       }
+      if (a === 'ai') {
+        const d = prompt('כמה קריאות תמונה בחודש לקוד הזה? (ריק = ברירת המחדל, 0 = חסום)', c.ai_limit ?? '');
+        if (d === null) return;
+        await adminApi(url, pw, 'PATCH', { aiLimit: d.trim() === '' ? null : Number(d) });
+      }
       if (a === 'del') {
         if (!confirm('למחוק את הקוד ' + c.code + '?')) return;
         await adminApi(url, pw, 'DELETE');
@@ -162,6 +167,7 @@ export default function CodesPanel({ pw }) {
                   <div className="meta">
                     <span>🎮 {c.games_used}{c.max_games ? ` מתוך ${c.max_games}` : ''} משחקים</span>
                     <span>📅 {c.expires_at ? (expired ? 'פג תוקף ב-' : 'בתוקף עד ') + fmt(c.expires_at) : 'ללא הגבלת זמן'}</span>
+                    <span>📷 {c.ai_used} מתוך {c.ai_limit_effective} קריאות החודש</span>
                     <span>נוצר {fmt(c.created_at)}</span>
                     {!c.active && <span className="tag opt">מושבת</span>}
                   </div>
@@ -169,6 +175,7 @@ export default function CodesPanel({ pw }) {
                 <div className="acts">
                   <button className="btn small" onClick={() => action(c, 'days')}>+ימים</button>
                   <button className="btn small" onClick={() => action(c, 'games')}>משחקים</button>
+                  <button className="btn small" onClick={() => action(c, 'ai')}>📷 מכסה</button>
                   <button className="btn small" onClick={() => action(c, 'toggle')}>{c.active ? 'השבתה' : 'הפעלה'}</button>
                   <button className="btn small danger" onClick={() => action(c, 'del')}>מחיקה</button>
                 </div>

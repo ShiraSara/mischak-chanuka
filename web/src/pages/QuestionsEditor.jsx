@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { api, shuffle, withId } from '../lib/api.js';
+import ImportDialog from './ImportDialog.jsx';
 
 // שלב 2: בחירת שאלות, עריכה, הוספה ושמירה כמאגר אישי
-export default function QuestionsEditor({ questions, setQuestions, custom, setCustom }) {
+export default function QuestionsEditor({ questions, setQuestions, custom, setCustom, ai, setAi }) {
+  const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | on
   const [randomN, setRandomN] = useState(15);
@@ -68,6 +70,9 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
             נבחרו ({onCount})
           </button>
         </div>
+        <button className="btn gold" onClick={() => setImporting(true)}>
+          📥 ייבוא מתמונה / טקסט
+        </button>
         <button className="btn primary" onClick={add}>
           + שאלה חדשה
         </button>
@@ -87,6 +92,21 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
         ))}
         {!shown.length && <div className="su-empty">{filter === 'on' ? 'עוד לא נבחרו שאלות' : 'לא נמצאו שאלות'}</div>}
       </div>
+
+      {importing && (
+        <ImportDialog
+          ai={ai}
+          onClose={() => setImporting(false)}
+          onUsed={(left) => setAi?.({ ...ai, left })}
+          onAdd={(list) => {
+            setSearch('');
+            setFilter('all');
+            setQuestions([...list.map((q) => withId({ ...q, on: true })), ...questions]);
+            setImporting(false);
+            setMsg(`✓ נוספו ${list.length} שאלות לראש הרשימה`);
+          }}
+        />
+      )}
 
       <div className="su-qfoot">
         <span className="muted" style={{ fontSize: '.92rem' }}>

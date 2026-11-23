@@ -21,6 +21,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
   const [custom, setCustom] = useState(false);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [error, setError] = useState('');
+  const [ai, setAi] = useState(me?.ai || null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -136,7 +137,9 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
 
       <main className="su-body">
         {step === 0 && <PlayersEditor players={players} setPlayers={setPlayers} />}
-        {step === 1 && <QuestionsEditor questions={questions} setQuestions={setQuestions} custom={custom} setCustom={setCustom} />}
+        {step === 1 && (
+          <QuestionsEditor questions={questions} setQuestions={setQuestions} custom={custom} setCustom={setCustom} ai={ai} setAi={setAi} />
+        )}
         {step === 2 && (
           <SettingsPanel settings={settings} setSettings={setSettings} playersCount={filled.length} questionsCount={chosen.length} />
         )}
