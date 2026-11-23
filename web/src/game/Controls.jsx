@@ -1,4 +1,3 @@
-import ThemePicker from '../lib/ThemePicker.jsx';
 import AutoBadge from './AutoBadge.jsx';
 
 // כפתורי השליטה בתחתית המסך – משתנים לפי שלב המשחק
@@ -43,10 +42,6 @@ export default function Controls({ game, soundOn, audio, onAction, clockOffset }
 
   return (
     <div className="controls">
-      {/* ערכות צבעים – תמיד גלויות בפינה השמאלית */}
-      <div className="controls-palette" title="צבעי המשחק">
-        <ThemePicker compact />
-      </div>
       {main}
       {autoCtl}
       {B('open_settings', '⚙️ הגדרות', '', 'הגדרות המשחק')}
