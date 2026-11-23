@@ -30,6 +30,14 @@ export default function Game({ gameId, me, onExit }) {
   const [curtain, setCurtainState] = useState({ closed: true, label: null });
   const [shownScene, setShownScene] = useState('');
   const [drawer, setDrawer] = useState(false);
+  // סרגל הכפתורים מוסתר – מופיע בלחיצה או כשהעכבר מגיע לתחתית, ונעלם לבד
+  const [controlsShown, setControlsShown] = useState(false);
+  const hideTimer = useRef(null);
+  const showControls = (ms = 4000) => {
+    setControlsShown(true);
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setControlsShown(false), ms);
+  };
   const drawerRef = useRef(false);
   drawerRef.current = drawer;
 
@@ -163,7 +171,14 @@ export default function Game({ gameId, me, onExit }) {
   }
 
   return (
-    <section id="view-game">
+    <section
+      id="view-game"
+      onClick={(e) => {
+        if (e.target.closest('.controls, .drawer-back, button, input, select, a')) return;
+        controlsShown ? setControlsShown(false) : showControls();
+      }}
+      onMouseMove={(e) => e.clientY > window.innerHeight - 90 && showControls()}
+    >
       <div className={`stage ${curtain.closed ? 'closed' : ''}`}>
         <div className="game-main enter" key={shownScene}>
           {content}
@@ -172,12 +187,13 @@ export default function Game({ gameId, me, onExit }) {
         <div className="curtain right" />
         <div className="valance" />
         <div className="curtain-label">
-          <CurtainLabel label={curtain.label} state={state} phone={me?.phoneInfo} />
+          <CurtainLabel label={curtain.label} state={state} />
         </div>
-        <div className="stage-info">
+        {/* מספר הטלפון: בפתיחה – בתחתית עם "התקשרו להצטרפות"; בזמן המשחק – קטן בפינה */}
+        <div className={`stage-info ${shownScene === 'lobby' || !shownScene ? 'lobby' : 'corner'} ${controlsShown ? 'raised' : ''}`}>
           <span className="phone-box">
             <span className="ph-ic">☎</span>
-            <span className="ph-lbl">להצבעה מתקשרות</span>
+            <span className="ph-lbl">{shownScene === 'lobby' || !shownScene ? 'התקשרו להצטרפות' : 'להצבעה'}</span>
             {me?.phoneInfo ? <b className="ph-num">{me.phoneInfo}</b> : <span>למספר המשחק</span>}
           </span>
         </div>
@@ -197,7 +213,15 @@ export default function Game({ gameId, me, onExit }) {
           }}
         />
       )}
-      {state && <Controls game={state.game} soundOn={soundOn} audio={audio} onAction={act} clockOffset={clockOffset} />}
+      {state && (
+        <div
+          className={`controls-wrap ${controlsShown || drawer ? '' : 'hidden'}`}
+          onMouseEnter={() => (setControlsShown(true), clearTimeout(hideTimer.current))}
+          onMouseLeave={() => showControls(2500)}
+        >
+          <Controls game={state.game} soundOn={soundOn} audio={audio} onAction={act} clockOffset={clockOffset} />
+        </div>
+      )}
     </section>
   );
 }

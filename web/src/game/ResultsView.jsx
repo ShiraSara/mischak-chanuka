@@ -36,7 +36,7 @@ export default function ResultsView({ state, soundOn }) {
         {winners.length === 0 ? (
           <span className="no-winner">אף אחת לא הצביעה 🤷‍♀️</span>
         ) : (
-          <span className="winner-sticker">
+          <span className={`winner-sticker ${winners.length > 1 ? 'tie' : ''}`}>
             <span className="crown">👑</span>
             <span className="wname">
               {winners.length === 1 ? winners[0].label : 'תיקו! ' + winners.map((w) => w.label).join(' · ')}

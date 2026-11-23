@@ -92,6 +92,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
             boardEvery: Number(settings.boardEvery) || 0,
             autoPlay: settings.autoPlay,
             resultsSec: Number(settings.resultsSec) || 5,
+            title: settings.title || '',
           },
         },
       });

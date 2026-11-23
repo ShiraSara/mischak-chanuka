@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5 };
+export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5, title: '' };
 
 const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 const HOLDS = [5, 8, 12, 20];
@@ -44,6 +44,20 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
       </div>
 
       <div className="su-set">
+        <div className="su-set-row">
+          <div>
+            <b>🏷️ שם המשחק</b>
+            <small>לא חובה – יופיע על המסך מתחת ל-Crazy girls. למשל: "יום ההולדת של שירה"</small>
+          </div>
+          <input
+            type="text"
+            value={settings.title}
+            maxLength={60}
+            placeholder="שם המשחק"
+            style={{ maxWidth: 320 }}
+            onChange={(e) => set('title', e.target.value)}
+          />
+        </div>
         <div className="su-set-row">
           <div>
             <b>⏱ טיימר לכל שאלה</b>

@@ -510,3 +510,78 @@ input[type=range] { accent-color: var(--c1); }
   animation: slam .6s cubic-bezier(.2, 1.5, .4, 1) both;
 }
 .fun-caption.results { display: table; margin: -10px auto 20px; background: var(--c3); color: var(--on-c3); }
+
+/* ================= עיצוב מקצועי יותר (גרסה 2) ================= */
+/* וילון: פחות מצויר – קפלים רכים, בלי קווי מתאר, ופס עליון ישר */
+.curtain {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, .35), transparent 14%, transparent 85%, rgba(0, 0, 0, .3)),
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--c1) 70%, #000) 0px,
+      color-mix(in srgb, var(--c1) 92%, #000) 28px,
+      color-mix(in srgb, var(--c1) 88%, #fff) 55px,
+      color-mix(in srgb, var(--c1) 92%, #000) 82px,
+      color-mix(in srgb, var(--c1) 70%, #000) 110px);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, .35);
+}
+.curtain::after { height: 6px; border-top: 0; background: var(--c2); opacity: .9; }
+.valance {
+  height: 44px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 55%, #000), color-mix(in srgb, var(--c1) 78%, #000));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+.valance::after { top: auto; bottom: 0; height: 4px; border: 0; background: var(--c2); }
+.stage { padding-top: 64px; padding-bottom: 70px; min-height: 100vh; }
+.game-main { min-height: calc(100vh - 150px); }
+.curtain-label { inset: 50px 6% 90px; }
+
+/* פתיחה: מותג קטן יותר + שם המשחק */
+.curtain-label > .lobby-brand .marquee { font-size: clamp(2.2rem, 4.6vw, 3.6rem); text-shadow: 3px 3px 0 var(--ink); }
+.lobby-brand .wave { height: 12px; }
+.lobby-title { font-weight: 900; font-size: clamp(1.8rem, 3.8vw, 3rem); color: #fff; text-shadow: 2px 2px 0 var(--ink); line-height: 1.15; }
+.lchip { font-size: 1.05rem; padding: 6px 13px; }
+
+/* טלפון: בפתיחה בתחתית עם "התקשרו להצטרפות", בזמן המשחק קטן בפינה */
+.stage-info { position: fixed; bottom: 22px; transition: bottom .3s; }
+.stage-info.raised { bottom: 92px; }
+.stage-info .phone-box { transform: none; }
+.stage-info.lobby .phone-box { padding: 8px 20px; }
+.stage-info.lobby .ph-num { font-size: clamp(1.7rem, 2.8vw, 2.3rem); }
+.stage-info.lobby .ph-lbl { font-size: 1.05rem; }
+.stage-info.corner { left: 16px; right: auto; justify-content: flex-start; }
+.stage-info.corner .phone-box { padding: 4px 12px; gap: 8px; border-width: 2px; box-shadow: 3px 3px 0 var(--ink); }
+.stage-info.corner .ph-num { font-size: 1.15rem; letter-spacing: 0; }
+.stage-info.corner .ph-ic { font-size: 1rem; }
+.stage-info.corner .ph-lbl { font-size: .85rem; }
+
+/* סרגל כפתורים – מוסתר עד לחיצה / תנועת עכבר לתחתית */
+.controls-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.controls-wrap.hidden { transform: translateY(110%); }
+.controls { position: static; }
+
+/* גופנים קטנים ומסודרים יותר בשאלות ובתוצאות */
+.q-counter { font-size: .95rem; padding: 4px 12px; }
+.q-title { font-size: clamp(1.7rem, 3.3vw, 2.9rem); margin: 12px 0 22px; letter-spacing: 0; }
+.q-title.small { font-size: clamp(1.25rem, 2.2vw, 1.8rem); }
+.options { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.opt { font-size: 1.2rem; padding: 9px 12px; gap: 12px; }
+.opt .n { min-width: 42px; height: 42px; font-size: 1.25rem; border-radius: 12px; }
+.status-line { font-size: 1.05rem; margin-top: 20px; }
+.vote-count b { font-size: 1.4rem; }
+.chip { font-size: 1rem; padding: 5px 12px; }
+.timer-ring { width: 104px; height: 104px; }
+.timer-ring .num { font-size: 2.3rem; }
+.winner-banner { margin: 2px 0 20px; }
+.winner-sticker { padding: 8px 24px; gap: 10px; }
+.winner-sticker .crown { font-size: 2rem; }
+.winner-sticker .wname { font-size: clamp(1.8rem, 4vw, 3.1rem); }
+.winner-sticker.tie .wname { font-size: clamp(1.25rem, 2.4vw, 1.9rem); }
+.bars { gap: 10px; }
+.bar-row { grid-template-columns: 170px 1fr 50px; font-size: 1.2rem; }
+.bar-track { height: 36px; }
+.bar-row .cnt { font-size: 1.4rem; }
+.fun-caption { font-size: 1.1rem; padding: 5px 14px; }
+.sum-row { font-size: 1.05rem; padding: 10px 16px; }
+.pod-name { font-size: 1.4rem; }
+.pod-1 .pod-name { font-size: 1.7rem; }
+.topic-name { font-size: clamp(2.4rem, 5.5vw, 4.2rem); }

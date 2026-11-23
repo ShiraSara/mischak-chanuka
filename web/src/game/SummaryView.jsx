@@ -4,6 +4,7 @@ export default function SummaryView({ state }) {
   return (
     <>
       <div className="q-title">🏆 הסיכום הגדול 🏆</div>
+      {state.game.settings.title && <div className="q-counter" style={{ marginBottom: 10 }}>{state.game.settings.title}</div>}
       {state.game.settings.boardEvery > 0 && <Podium scores={state.scores} compact />}
       <h3 className="sum-head">ומי ניצחה בכל שאלה?</h3>
       <div className="summary">

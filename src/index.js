@@ -374,6 +374,7 @@ function cleanSettings(s, base = {}) {
     boardEvery: Math.max(0, Math.min(20, Number(v.boardEvery) || 0)),
     autoPlay: !!v.autoPlay,
     resultsSec: Math.max(3, Math.min(60, Number(v.resultsSec) || 5)),
+    title: String(v.title || '').trim().slice(0, 60), // שם המשחק (לא חובה)
   };
 }
 
