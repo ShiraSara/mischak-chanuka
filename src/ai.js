@@ -2,7 +2,11 @@
 import { GoogleGenAI, ApiError } from '@google/genai';
 
 const DEFAULT_MODEL = 'gemini-3.8-flash'; // אפשר להחליף בלי קוד: משתנה GEMINI_MODEL ב-Cloudflare
-const ATTEMPTS_PER_MODEL = 3;
+const ATTEMPTS_PER_MODEL = 2;
+const BUSY_COOLDOWN_MS = 5 * 60_000; // דגם שהיה עמוס – מנסים אותו אחרון ל-5 דקות
+const busyUntil = new Map();
+const markBusy = (model) => busyUntil.set(model, Date.now() + BUSY_COOLDOWN_MS);
+const isBusy = (model) => (busyUntil.get(model) || 0) > Date.now();
 const MAX_MODELS = 4; // הראשי + עד 3 חלופיים
 
 // ---------- גילוי הדגמים הזמינים למפתח ----------
@@ -44,9 +48,11 @@ export async function chooseModels(ai, env) {
   }
   if (!available) return [primary, ...configured].filter((m, i, a) => a.indexOf(m) === i);
   const has = new Set(available);
-  return [primary, ...configured, ...flashCandidates(available)]
+  const ordered = [primary, ...configured, ...flashCandidates(available)]
     .filter((m, i, a) => has.has(m) && a.indexOf(m) === i)
     .slice(0, MAX_MODELS);
+  // דגמים שהיו עמוסים לאחרונה – לסוף התור
+  return [...ordered.filter((m) => !isBusy(m)), ...ordered.filter(isBusy)];
 }
 const MAX_IMAGES = 3;
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // אחרי דחיסה בדפדפן התמונות קטנות בהרבה
@@ -141,12 +147,15 @@ export async function readQuestionsFromImages(env, images) {
         console.error('Gemini API error', model, error.status, error.message);
         lastError = error;
         const busy = error.status >= 500 || error.status === 429;
-        if (busy) busyError = error;
+        if (busy) {
+          busyError = error;
+          markBusy(model);
+        }
         // דגם שלא קיים / לא זמין בחשבון – עוברים לחלופי
         if (error.status === 404) continue outer;
         if (!busy) break outer;
         // עומס – המתנה הולכת וגדלה, ואחרי 3 ניסיונות עוברים לדגם הבא
-        if (attempt < ATTEMPTS_PER_MODEL) await new Promise((r) => setTimeout(r, 1000 * attempt));
+        if (attempt < ATTEMPTS_PER_MODEL) await new Promise((r) => setTimeout(r, 800));
       }
     }
   }
@@ -205,11 +214,12 @@ export async function diagnose(env) {
   for (const model of out.order) {
     try {
       const t = Date.now();
-      const r = await ai.models.generateContent({ model, contents: 'ענה במילה אחת: מה צבע השמיים?', config: { maxOutputTokens: 50 } });
+      const r = await ai.models.generateContent({ model, contents: 'ענה במילה אחת: מה צבע השמיים?', config: { maxOutputTokens: 1024 } });
       out.test = { model, ok: true, ms: Date.now() - t, answer: String(r.text || '').trim().slice(0, 40) };
       out.ok = true;
       break;
     } catch (e) {
+      if (e?.status >= 500 || e?.status === 429) markBusy(model);
       (out.failures ||= []).push(`${model}: ${e?.status || ''} ${String(e?.message || e).slice(0, 120)}`);
     }
   }
