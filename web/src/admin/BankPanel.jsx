@@ -105,6 +105,7 @@ export default function BankPanel({ pw }) {
         </div>
       </div>
 
+      {!banks.length && <div className="note" style={{ marginBottom: 14 }}>עוד אין מאגרים. לוחצים "מאגר חדש", נותנים לו שם – והוא נפתח עם 2 שאלות לדוגמה.</div>}
       <div className="bank-pick">
         {banks.map((b) => (
           <button key={b.id} className={`bank-card ${b.id === sel ? 'on' : ''} ${b.active ? '' : 'off'}`} onClick={() => open(b.id)}>

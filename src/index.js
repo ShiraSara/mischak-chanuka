@@ -1,4 +1,4 @@
-import { DEFAULT_QUESTIONS, DEFAULT_BANKS } from './defaults.js';
+import { EXAMPLE_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
@@ -79,30 +79,8 @@ function cleanQuestions(list) {
 }
 
 // ---------- מאגר שאלות כללי ----------
-// מערכת חדשה – יוצרים את המאגרים הבסיסיים ושאלות ברירת מחדל
-async function ensureBanks(env) {
-  const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM banks').first();
-  if (row.n) return;
-  const stmts = DEFAULT_BANKS.map((b, i) =>
-    env.DB.prepare('INSERT INTO banks (id, name, description, icon, sort) VALUES (?, ?, ?, ?, ?)').bind(i + 1, b.name, b.description, b.icon, i + 1)
-  );
-  stmts.push(env.DB.prepare('DELETE FROM bank WHERE bank_id = 1 OR bank_id IS NULL'));
-  DEFAULT_QUESTIONS.forEach((q, i) =>
-    stmts.push(
-      env.DB.prepare('INSERT INTO bank (bank_id, text, type, options, topic, sort) VALUES (1, ?, ?, ?, ?, ?)').bind(
-        q.text,
-        q.type,
-        JSON.stringify(q.options || []),
-        q.topic || '',
-        i
-      )
-    )
-  );
-  await env.DB.batch(stmts);
-}
-
+// אין מאגרים מובנים – המאגרים נוצרים במסך הניהול
 async function listBanks(env, { all = false } = {}) {
-  await ensureBanks(env);
   const { results } = await env.DB.prepare(
     `SELECT b.*, (SELECT COUNT(*) FROM bank q WHERE q.bank_id = b.id) AS count FROM banks b ORDER BY b.sort, b.id`
   ).all();
@@ -110,7 +88,6 @@ async function listBanks(env, { all = false } = {}) {
 }
 
 async function getBankQuestions(env, bankId) {
-  await ensureBanks(env);
   const { results } = await env.DB.prepare('SELECT * FROM bank WHERE bank_id = ? ORDER BY sort, id').bind(bankId).all();
   return results.map((r) => ({ text: r.text, type: r.type, options: JSON.parse(r.options || '[]'), topic: r.topic || '' }));
 }
@@ -842,6 +819,8 @@ async function adminRoutes(req, env, path, method) {
       const r = await env.DB.prepare('INSERT INTO banks (name, description, icon, sort) VALUES (?, ?, ?, ?) RETURNING id')
         .bind(name, String(b.description || '').slice(0, 120), String(b.icon || '📚').slice(0, 4), max.m + 1)
         .first();
+      // מאגר חדש מתחיל עם 2 שאלות לדוגמה (אפשר למחוק)
+      if (b.examples !== false) await setBankQuestions(env, r.id, EXAMPLE_QUESTIONS);
       return json({ id: r.id });
     }
   }

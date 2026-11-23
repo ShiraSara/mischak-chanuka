@@ -71,6 +71,11 @@ export default function QuestionsEditor({ questions, setQuestions, banks, bankId
         <span className="su-count">{onCount} נבחרו</span>
       </div>
 
+      {!banks.length && (
+        <div className="note" style={{ marginBottom: 16 }}>
+          עוד אין מאגרי שאלות מוכנים. אפשר להוסיף שאלות בעצמך בכפתור "+ שאלה חדשה".
+        </div>
+      )}
       {/* בחירת מאגר */}
       <div className="bank-pick">
         {banks.map((b) => (
