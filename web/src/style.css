@@ -471,3 +471,8 @@ input.ltr { direction: ltr; text-align: right; }
 /* פס הטלפון תמיד גלוי – צמוד מעל סרגל הכפתורים */
 .stage-info { position: fixed; bottom: 100px; z-index: 15; }
 .stage { padding-bottom: 130px; }
+
+/* כפתור כבוי (מנגינה / קריין) */
+.btn.ghost.off { opacity: .35; text-decoration: line-through; }
+
+input[type=range] { accent-color: var(--c1); }

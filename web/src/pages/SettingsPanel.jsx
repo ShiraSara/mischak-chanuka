@@ -4,6 +4,7 @@ const BOARDS = [[0, 'בלי'], [3, 'כל 3'], [4, 'כל 4'], [5, 'כל 5']];
 const HOLDS = [5, 8, 12, 20];
 
 import ThemePicker from '../lib/ThemePicker.jsx';
+import AudioSettings from './AudioSettings.jsx';
 
 const TIMERS = [0, 15, 20, 30, 45, 60, 90];
 
@@ -69,6 +70,7 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
             ))}
           </div>
         </div>
+        <AudioSettings />
         <div className="su-set-row">
           <div>
             <b>🎨 צבעי המשחק</b>

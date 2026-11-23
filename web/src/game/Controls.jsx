@@ -2,7 +2,7 @@ import ThemePicker from '../lib/ThemePicker.jsx';
 import AutoBadge from './AutoBadge.jsx';
 
 // כפתורי השליטה בתחתית המסך – משתנים לפי שלב המשחק
-export default function Controls({ game, soundOn, onAction, clockOffset }) {
+export default function Controls({ game, soundOn, audio, onAction, clockOffset }) {
   const last = game.qIndex + 1 >= game.total;
   // כפתור ראשי גדול, כל השאר קטנים – שהכל ייכנס בשורה אחת
   const B = (a, label, cls = '', title) => (
@@ -49,7 +49,9 @@ export default function Controls({ game, soundOn, onAction, clockOffset }) {
       </div>
       {main}
       {autoCtl}
-      {B('sound', soundOn ? '🔊' : '🔇', 'ghost')}
+      {B('music', '🎵', audio?.music ? 'ghost' : 'ghost off', audio?.music ? 'כיבוי מנגינה' : 'הפעלת מנגינה')}
+      {B('narrator', '🎙️', audio?.narrator ? 'ghost' : 'ghost off', audio?.narrator ? 'כיבוי קריין' : 'הפעלת קריין')}
+      {B('sound', soundOn ? '🔊' : '🔇', 'ghost', 'צלילי משחק')}
       {B('fullscreen', '⛶', 'ghost', 'מסך מלא')}
       {B('sim', '📱', 'ghost', 'סימולטור טלפון (בדיקה)')}
     </div>
