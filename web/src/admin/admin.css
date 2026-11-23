@@ -68,3 +68,12 @@
 .inline-input input { padding: 6px 10px !important; }
 .bank-card.editing { cursor: default; gap: 8px; }
 .ad-code .acts { align-items: center; }
+
+/* טאבים במסך הניהול */
+.ad-tabs { display: flex; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 10px 0; }
+.ad-tabs button {
+  border: 2.5px solid var(--ink); background: #fff; border-radius: 14px; padding: 10px 18px; font: inherit; font-weight: 800;
+  cursor: pointer; box-shadow: 2px 2px 0 var(--ink); transition: transform .1s;
+}
+.ad-tabs button:hover { transform: translateY(-1px); }
+.ad-tabs button.on { background: var(--c1); color: var(--on-c1); box-shadow: 4px 4px 0 var(--ink); }

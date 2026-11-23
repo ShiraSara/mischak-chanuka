@@ -3,6 +3,13 @@ import { adminApi } from './adminApi.js';
 import CodesPanel from './CodesPanel.jsx';
 import BankPanel from './BankPanel.jsx';
 import AiCheckPanel from './AiCheckPanel.jsx';
+import { FEATURES } from '../lib/features.js';
+
+const TABS = [
+  { id: 'create', label: '➕ יצירת קוד ללקוחה' },
+  { id: 'codes', label: '🎮 משחקים קיימים' },
+  { id: 'banks', label: '📚 מאגרי שאלות' },
+];
 import '../pages/setup.css';
 import './admin.css';
 import { BRAND } from '../lib/theme.js';
@@ -14,6 +21,11 @@ export default function AdminApp() {
   const [ok, setOk] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [tab, setTab] = useState(() => (TABS.some((t) => '#' + t.id === location.hash) ? location.hash.slice(1) : 'create'));
+  const goTab = (id) => {
+    setTab(id);
+    history.replaceState(null, '', '#' + id);
+  };
 
   const tryLogin = async (password) => {
     await adminApi('/api/admin/codes', password);
@@ -72,9 +84,18 @@ export default function AdminApp() {
         </div>
       </header>
       <main className="su-body ad-body">
-        <CodesPanel pw={pw} />
-        <AiCheckPanel pw={pw} />
-        <BankPanel pw={pw} />
+        <nav className="ad-tabs">
+          {TABS.map((t) => (
+            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        {tab === 'create' && <CodesPanel pw={pw} part="create" />}
+        {tab === 'codes' && <CodesPanel pw={pw} part="list" />}
+        {tab === 'banks' && <BankPanel pw={pw} />}
+        {/* בדיקת חיבור ל-AI – כבויה כרגע (lib/features.js) */}
+        {FEATURES.aiCheck && tab === 'create' && <AiCheckPanel pw={pw} />}
       </main>
     </div>
   );

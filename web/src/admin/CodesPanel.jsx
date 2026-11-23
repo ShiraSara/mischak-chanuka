@@ -28,7 +28,8 @@ function Pick({ value, options, onChange, unit }) {
 }
 
 // יצירת קודים ללקוחות וניהול הקודים הקיימים
-export default function CodesPanel({ pw }) {
+// part: 'create' – טופס יצירת קוד · 'list' – הקודים הקיימים
+export default function CodesPanel({ pw, part = 'create', onCreated }) {
   const [codes, setCodes] = useState([]);
   const [form, setForm] = useState({ label: '', code: '', days: 30, maxGames: 1 });
   const [error, setError] = useState('');
@@ -50,6 +51,7 @@ export default function CodesPanel({ pw }) {
     try {
       const r = await adminApi('/api/admin/codes', pw, 'POST', form);
       setCreated(r.code);
+      onCreated?.();
       setCopied(false);
       setForm({ ...form, label: '', code: '' });
       load();
@@ -98,6 +100,7 @@ export default function CodesPanel({ pw }) {
 
   return (
     <>
+      {part === 'create' && (
       <div className="su-card">
         <div className="su-card-head">
           <div>
@@ -147,6 +150,9 @@ export default function CodesPanel({ pw }) {
         )}
       </div>
 
+      )}
+
+      {part === 'list' && (
       <div className="su-card">
         <div className="su-card-head">
           <div>
@@ -197,6 +203,7 @@ export default function CodesPanel({ pw }) {
           {!shown.length && <div className="su-empty">אין קודים להצגה</div>}
         </div>
       </div>
+      )}
     </>
   );
 }
