@@ -11,17 +11,19 @@ const MAX_MODELS = 4; // הראשי + עד 3 חלופיים
 
 // ---------- גילוי הדגמים הזמינים למפתח ----------
 // שואלים את גוגל אילו דגמים זמינים (ולא מנחשים שמות), ושומרים לשעה.
-let modelCache = { at: 0, key: '', list: null };
+const modelCaches = new Map(); // לפי מפתח + גרסת API
 
-export async function listAvailableModels(ai, apiKey) {
-  if (modelCache.list && modelCache.key === apiKey && Date.now() - modelCache.at < 3600_000) return modelCache.list;
+export async function listAvailableModels(ai, apiKey, version = 'v1') {
+  const ck = version + '|' + apiKey;
+  const cached = modelCaches.get(ck);
+  if (cached && Date.now() - cached.at < 3600_000) return cached.list;
   const names = [];
   const pager = await ai.models.list({ config: { pageSize: 200 } });
   for await (const m of pager) {
     if (!m.name || (m.supportedActions && !m.supportedActions.includes('generateContent'))) continue;
     names.push(m.name.replace(/^models\//, ''));
   }
-  modelCache = { at: Date.now(), key: apiKey, list: names };
+  modelCaches.set(ck, { at: Date.now(), list: names });
   return names;
 }
 
@@ -203,7 +205,7 @@ export async function diagnose(env) {
   });
   const out = { ok: false, primary: env.GEMINI_MODEL || DEFAULT_MODEL };
   try {
-    modelCache = { at: 0, key: '', list: null };
+    modelCaches.clear();
     const names = await listAvailableModels(ai, env.GEMINI_API_KEY);
     out.flashModels = flashCandidates(names);
     out.primaryAvailable = names.includes(out.primary);

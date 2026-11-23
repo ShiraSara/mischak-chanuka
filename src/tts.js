@@ -32,10 +32,20 @@ function pcmToWav(pcm, rate) {
 
 const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
-async function ttsModels(ai, env) {
+// דגמי הקול של גוגל זמינים בגרסת ה-API v1beta
+const TTS_API_VERSION = 'v1beta';
+
+export function ttsClient(env) {
+  return new GoogleGenAI({
+    apiKey: env.GEMINI_API_KEY,
+    httpOptions: { apiVersion: TTS_API_VERSION, ...(env.GEMINI_BASE_URL ? { baseUrl: env.GEMINI_BASE_URL } : {}) },
+  });
+}
+
+export async function ttsModels(ai, env) {
   const preferred = env.GEMINI_TTS_MODEL ? [env.GEMINI_TTS_MODEL] : DEFAULT_TTS_MODELS;
   try {
-    const names = await listAvailableModels(ai, env.GEMINI_API_KEY);
+    const names = await listAvailableModels(ai, env.GEMINI_API_KEY, TTS_API_VERSION);
     const has = new Set(names);
     const found = [...preferred, ...names.filter((n) => /tts/i.test(n))].filter((m, i, a) => has.has(m) && a.indexOf(m) === i);
     if (found.length) return found.slice(0, 3);
@@ -50,10 +60,7 @@ export async function synthesize(env, text, voice) {
   text = String(text || '').trim().slice(0, MAX_CHARS);
   if (!text) throw new AiError('אין טקסט להקראה');
   const voiceName = TTS_VOICES.includes(voice) ? voice : TTS_VOICES[0];
-  const ai = new GoogleGenAI({
-    apiKey: env.GEMINI_API_KEY,
-    ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}),
-  });
+  const ai = ttsClient(env);
   // הוראת סגנון לפני הטקסט – המודל מקריא רק את מה שאחרי הנקודתיים
   const prompt = `Read the following Hebrew text aloud in fluent, natural Israeli Hebrew, like an upbeat, friendly TV game-show host: ${text}`;
 
@@ -86,7 +93,31 @@ export async function synthesize(env, text, voice) {
     }
   }
   const st = lastError?.status;
+  const msg = String(lastError?.message || '').replace(/\s+/g, ' ').slice(0, 140);
   throw new AiError(
-    st >= 500 || st === 429 ? 'שירות הקול עמוס כרגע' : `קול AI לא זמין${st ? ` (קוד ${st})` : ''}`
+    st >= 500 || st === 429 ? 'שירות הקול עמוס כרגע' : `קול AI לא זמין${st ? ` (קוד ${st}: ${msg})` : ''}`
   );
+}
+
+// בדיקה למסך הניהול: אילו דגמי קול זמינים, והקראת בדיקה קצרה
+export async function diagnoseTts(env) {
+  const out = {};
+  try {
+    const ai = ttsClient(env);
+    const names = await listAvailableModels(ai, env.GEMINI_API_KEY, TTS_API_VERSION);
+    out.ttsModels = names.filter((n) => /tts/i.test(n));
+  } catch (e) {
+    out.ttsListError = `${e?.status || ''} ${String(e?.message || e).slice(0, 160)}`;
+  }
+  try {
+    const t = Date.now();
+    const r = await synthesize(env, 'שלום, זו בדיקה של הקריין.', TTS_VOICES[0]);
+    out.ttsOk = true;
+    out.ttsMs = Date.now() - t;
+    out.ttsBytes = r.bytes.length;
+  } catch (e) {
+    out.ttsOk = false;
+    out.ttsError = String(e?.message || e).slice(0, 240);
+  }
+  return out;
 }

@@ -20,7 +20,7 @@ export default function AiCheckPanel({ pw }) {
     <div className="su-card">
       <div className="su-card-head">
         <div>
-          <h2>🔌 חיבור ל-AI (קריאת תמונות)</h2>
+          <h2>🔌 חיבור ל-AI (קריאת תמונות וקריין)</h2>
           <p>בודק את המפתח של Gemini, אילו דגמים זמינים, ושולח שאלת בדיקה קצרה.</p>
         </div>
         <button className="btn primary" onClick={run} disabled={busy}>
@@ -49,6 +49,17 @@ export default function AiCheckPanel({ pw }) {
             </p>
           )}
           {r.listError && <p className="error">שגיאה ברשימת הדגמים: {r.listError}</p>}
+          {'ttsOk' in r && (
+            <div className={`ai-status ${r.ttsOk ? 'ok' : 'bad'}`} style={{ marginTop: 6 }}>
+              🎙️ קריין AI: {r.ttsOk ? `עובד (${(r.ttsMs / 1000).toFixed(1)} שניות)` : `לא עובד – ${r.ttsError}`}
+            </div>
+          )}
+          {r.ttsModels && (
+            <p className="muted">
+              דגמי קול זמינים: <code>{r.ttsModels.join(', ') || 'אין'}</code>
+            </p>
+          )}
+          {r.ttsListError && <p className="error">שגיאה ברשימת דגמי הקול: {r.ttsListError}</p>}
           {r.failures && (
             <ul className="muted">
               {r.failures.map((f, i) => (

@@ -1,7 +1,7 @@
 import { DEFAULT_QUESTIONS } from './defaults.js';
 import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
-import { synthesize } from './tts.js';
+import { synthesize, diagnoseTts } from './tts.js';
 
 const MAX_PLAYERS = 15;
 const READ_SEC = 20;
@@ -788,7 +788,10 @@ async function adminRoutes(req, env, path, method) {
     }
   }
 
-  if (path === '/api/admin/ai-check' && method === 'POST') return json(await diagnose(env));
+  if (path === '/api/admin/ai-check' && method === 'POST') {
+    const [main, voice] = await Promise.all([diagnose(env), aiEnabled(env) ? diagnoseTts(env) : {}]);
+    return json({ ...main, ...voice });
+  }
 
   if (path === '/api/admin/bank') {
     if (method === 'GET') return json({ questions: await getBank(env) });
