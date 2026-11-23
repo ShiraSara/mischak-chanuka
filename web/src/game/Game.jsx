@@ -165,7 +165,7 @@ export default function Game({ gameId, me, onExit }) {
           )}
         </div>
       </div>
-      {state && <Controls game={state.game} soundOn={soundOn} onAction={act} />}
+      {state && <Controls game={state.game} soundOn={soundOn} onAction={act} clockOffset={clockOffset} />}
     </section>
   );
 }

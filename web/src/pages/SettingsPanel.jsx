@@ -1,6 +1,7 @@
-export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 3 };
+export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 3, autoPlay: true, resultsSec: 8 };
 
 const BOARDS = [[0, 'בלי'], [3, 'כל 3'], [4, 'כל 4'], [5, 'כל 5']];
+const HOLDS = [5, 8, 12, 20];
 
 import ThemePicker from '../lib/ThemePicker.jsx';
 
@@ -77,7 +78,28 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
         </div>
         {row('shuffle', '🔀 ערבוב סדר השאלות', 'השאלות יופיעו בסדר אקראי')}
         {row('allowSelfVote', '🙋‍♀️ מותר להצביע לעצמך', 'כשהתשובות הן שמות – אפשר לבחור גם בעצמך')}
-        {row('autoReveal', '✨ תוצאות אוטומטיות', 'התוצאות יוצגו לבד כשכולן הצביעו או כשהזמן נגמר')}
+        {row(
+          'autoPlay',
+          '⏩ משחק אוטומטי',
+          Number(settings.timerSec)
+            ? 'כשהזמן נגמר (או כשכולן הצביעו) התוצאות מוצגות לבד, ואחרי כמה שניות עוברים לשאלה הבאה'
+            : 'בלי טיימר – התוצאות יוצגו כשכולן הצביעו, ואחרי כמה שניות עוברים לשאלה הבאה'
+        )}
+        {settings.autoPlay && (
+          <div className="su-set-row">
+            <div>
+              <b>⏱ כמה זמן להציג את התוצאות</b>
+              <small>לפני המעבר לשאלה הבאה. אפשר לעצור באמצע המשחק בכפתור ⏸</small>
+            </div>
+            <div className="su-timer">
+              {HOLDS.map((t) => (
+                <button key={t} className={Number(settings.resultsSec) === t ? 'on' : ''} onClick={() => set('resultsSec', t)}>
+                  {t} שנ׳
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {row('showVoters', '✅ להראות מי כבר הצביעה', 'על המסך יופיע מי הצביעה – בלי לגלות מה היא בחרה')}
       </div>
 

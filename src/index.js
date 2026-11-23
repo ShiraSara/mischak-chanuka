@@ -178,16 +178,29 @@ function tally(opts, votes) {
 
 async function gameState(env, g) {
   const players = await loadPlayers(env, g.id);
-  const q = g.questions[g.q_index];
-  const opts = optionsFor(q, players);
   let votes = g.q_index >= 0 ? await votesFor(env, g.id, g.q_index) : [];
 
   // חשיפה אוטומטית: כולן הצביעו או שהזמן נגמר
-  if (g.phase === 'question' && g.settings.autoReveal) {
+  const auto = !!g.settings.autoPlay;
+  if (g.phase === 'question' && (g.settings.autoReveal || auto)) {
     const allVoted = players.length > 0 && votes.length >= players.length;
     const timeUp = g.settings.timerSec > 0 && now() - g.q_started_at > g.settings.timerSec * 1000 + 1500;
-    if (allVoted || timeUp) await setPhase(env, g, { phase: 'results' });
+    if ((allVoted || timeUp) && (await claimPhase(env, g))) {
+      await setPhase(env, g, { phase: 'results' });
+    }
   }
+  // מעבר אוטומטי: אחרי כמה שניות של תוצאות (או טבלת מובילות) – לשאלה הבאה
+  if (auto && (g.phase === 'results' || g.phase === 'board')) {
+    const holdMs = autoHoldMs(g);
+    if (now() - g.updated_at > holdMs && (await claimPhase(env, g))) {
+      await gameAction(env, g, 'next');
+      votes = g.q_index >= 0 ? await votesFor(env, g.id, g.q_index) : [];
+    }
+  }
+
+  // השאלה הנוכחית – אחרי מעברים אוטומטיים אפשריים
+  const q = g.questions[g.q_index];
+  const opts = optionsFor(q, players);
 
   const voted = new Set(votes.map((v) => v.num));
   const state = {
@@ -200,6 +213,8 @@ async function gameState(env, g) {
       qIndex: g.q_index,
       total: g.questions.length,
       qStartedAt: g.q_started_at,
+      phaseAt: g.updated_at,
+      autoAt: g.settings.autoPlay && (g.phase === 'results' || g.phase === 'board') ? g.updated_at + autoHoldMs(g) : null,
       settings: g.settings,
     },
     players: players.map((p) => ({
@@ -287,6 +302,27 @@ async function markRound(env, g, qIndex, startedAt, replace = false) {
     .run();
 }
 
+// כמה זמן להשאיר תוצאות / טבלת מובילות במצב אוטומטי
+function autoHoldMs(g) {
+  const sec = Number(g.settings.resultsSec) || 8;
+  return (g.phase === 'board' ? sec + 6 : sec) * 1000;
+}
+
+// "תופס" את המעבר האוטומטי כדי שרק מסך אחד יבצע אותו (אם כמה מסכים פתוחים)
+async function claimPhase(env, g) {
+  const t = now();
+  const r = await env.DB.prepare('UPDATE games SET updated_at = ? WHERE id = ? AND phase = ? AND q_index = ? AND updated_at = ?')
+    .bind(t, g.id, g.phase, g.q_index, g.updated_at)
+    .run();
+  if (!r.meta.changes) {
+    const fresh = await loadGame(env, g.id);
+    Object.assign(g, fresh);
+    return false;
+  }
+  g.updated_at = t;
+  return true;
+}
+
 async function gameAction(env, g, action) {
   const total = g.questions.length;
   const every = Number(g.settings.boardEvery) || 0;
@@ -333,6 +369,15 @@ async function gameAction(env, g, action) {
     case 'end':
       await setPhase(env, g, { phase: 'ended', status: 'ended' });
       break;
+    case 'auto_on':
+    case 'auto_off':
+    {
+      const settings = { ...g.settings, autoPlay: action === 'auto_on' };
+      // מתחילים לספור מחדש מרגע ההפעלה
+      await setPhase(env, g, { settings: JSON.stringify(settings) });
+      g.settings = settings;
+      break;
+    }
     default:
       return 'פעולה לא מוכרת';
   }
@@ -571,6 +616,8 @@ async function hostRoutes(req, env, path, method, c) {
       autoReveal: !!s.autoReveal,
       showVoters: s.showVoters !== false,
       boardEvery: Math.max(0, Math.min(20, Number(s.boardEvery) || 0)),
+      autoPlay: !!s.autoPlay,
+      resultsSec: Math.max(3, Math.min(60, Number(s.resultsSec) || 8)),
     };
     // קוד משחק (PIN) ייחודי בין המשחקים הפעילים
     let pin;
