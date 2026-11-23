@@ -1,6 +1,6 @@
-export const DEFAULT_SETTINGS = { timerSec: 30, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 3, autoPlay: true, resultsSec: 8 };
+export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5 };
 
-const BOARDS = [[0, 'בלי'], [3, 'כל 3'], [4, 'כל 4'], [5, 'כל 5']];
+const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 const HOLDS = [5, 8, 12, 20];
 
 import ThemePicker from '../lib/ThemePicker.jsx';

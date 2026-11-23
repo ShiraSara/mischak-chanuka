@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, shuffle, withId } from '../lib/api.js';
 import ImportDialog from './ImportDialog.jsx';
+import { FEATURES } from '../lib/features.js';
 
 // שלב 2: בחירת שאלות, עריכה, הוספה ושמירה כמאגר אישי
 export default function QuestionsEditor({ questions, setQuestions, custom, setCustom, ai, setAi }) {
@@ -70,9 +71,12 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
             נבחרו ({onCount})
           </button>
         </div>
-        <button className="btn gold" onClick={() => setImporting(true)}>
-          📥 ייבוא מתמונה / טקסט
-        </button>
+        {/* ייבוא מתמונה / טקסט – כבוי כרגע (lib/features.js) */}
+        {FEATURES.imageImport && (
+          <button className="btn gold" onClick={() => setImporting(true)}>
+            📥 ייבוא מתמונה / טקסט
+          </button>
+        )}
         <button className="btn primary" onClick={add}>
           + שאלה חדשה
         </button>

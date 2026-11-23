@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
 
 const fmt = (t) => (t ? new Date(t).toLocaleDateString('he-IL') : '');
-const DAYS = [[7, 'שבוע'], [30, 'חודש'], [90, '3 חודשים'], [365, 'שנה'], [0, 'ללא הגבלה']];
+const DAYS = [[1, '24 שעות'], [7, 'שבוע'], [30, 'חודש'], [0, 'ללא הגבלה']];
 const GAMES = [[1, '1'], [3, '3'], [5, '5'], [10, '10'], [0, 'ללא הגבלה']];
 
 // בחירה בלחיצה + אפשרות להקליד מספר אחר

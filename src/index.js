@@ -209,7 +209,6 @@ async function gameState(env, g) {
     serverNow: now(),
     game: {
       id: g.id,
-      pin: g.pin,
       phase: g.phase,
       status: g.status,
       qIndex: g.q_index,
@@ -335,7 +334,7 @@ function cleanSettings(s, base = {}) {
     showVoters: v.showVoters !== false,
     boardEvery: Math.max(0, Math.min(20, Number(v.boardEvery) || 0)),
     autoPlay: !!v.autoPlay,
-    resultsSec: Math.max(3, Math.min(60, Number(v.resultsSec) || 8)),
+    resultsSec: Math.max(3, Math.min(60, Number(v.resultsSec) || 5)),
   };
 }
 
@@ -453,38 +452,12 @@ export async function handleYemot(env, params) {
       .run();
 
     if (call.stage === 'play') return await playTurn(env, call, null);
-    // מספר לא מזוהה: שקט, מחכים לקוד המשחק (4 ספרות) שמופיע על המסך
-    return await ask(env, call, [SILENT], { max: 4, min: 4 });
+    // מספר שלא רשום באף משחק פעיל (או מספר חסוי) – אין דרך להצטרף
+    return msgCmd([tts('המספר שלך לא רשום במשחק בקשי מהמארחת להוסיף אותו')]) + '&' + HANGUP;
   }
 
   const raw = params['v' + call.step];
   const value = raw === undefined || raw === 'None' || raw === '' ? null : String(raw).replace(/\D/g, '');
-
-  if (call.stage === 'pin') {
-    if (!value) return await ask(env, call, [SILENT], { max: 4, min: 4 });
-    const g = await env.DB.prepare(
-      "SELECT id FROM games WHERE pin = ? AND status != 'ended' AND created_at > ? ORDER BY id DESC LIMIT 1"
-    )
-      .bind(value, now() - 24 * 3600 * 1000)
-      .first();
-    if (!g) return await ask(env, call, [tts('קוד שגוי')], { max: 4, min: 4 });
-    call.game_id = g.id;
-    call.stage = 'who';
-    await env.DB.prepare('UPDATE calls SET game_id = ?, stage = ? WHERE call_id = ?').bind(g.id, 'who', callId).run();
-    return await ask(env, call, [tts('הקישו את המספר שלכן')]);
-  }
-
-  if (call.stage === 'who') {
-    if (!value) return await ask(env, call, [SILENT]);
-    const p = await env.DB.prepare('SELECT * FROM players WHERE game_id = ? AND num = ?')
-      .bind(call.game_id, Number(value))
-      .first();
-    if (!p) return await ask(env, call, [tts('מספר לא קיים')]);
-    call.num = p.num;
-    call.stage = 'play';
-    await env.DB.prepare('UPDATE calls SET num = ?, stage = ? WHERE call_id = ?').bind(p.num, 'play', callId).run();
-    return await playTurn(env, call, null);
-  }
 
   return await playTurn(env, call, value);
 }
@@ -675,7 +648,7 @@ async function hostRoutes(req, env, path, method, c) {
       if (q.type === 'options' && q.options.length > 99) return err('יותר מדי תשובות');
     }
     const settings = cleanSettings(b.settings || {});
-    // קוד משחק (PIN) ייחודי בין המשחקים הפעילים
+    // מזהה פנימי (העמודה קיימת במסד הנתונים; לא מוצג לאף אחד)
     let pin;
     for (let i = 0; i < 20; i++) {
       pin = randomDigits(4);
@@ -699,7 +672,7 @@ async function hostRoutes(req, env, path, method, c) {
       env.DB.prepare("UPDATE games SET status = 'ended', phase = 'ended' WHERE code = ? AND id != ? AND status != 'ended'").bind(c.code, id)
     );
     await env.DB.batch(stmts);
-    return json({ id, pin });
+    return json({ id });
   }
 
   const m = path.match(/^\/api\/games\/(\d+)(\/action|\/sim)?$/);

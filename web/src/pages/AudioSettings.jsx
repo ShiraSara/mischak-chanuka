@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getPrefs, setPrefs } from '../lib/prefs.js';
 import { hebrewVoices, onVoicesChanged, speakWith, stopAll, AI_VOICES } from '../lib/narrator.js';
 import { music, MUSIC_STYLES } from '../lib/music.js';
+import { FEATURES } from '../lib/features.js';
 
 function Switch({ checked, onChange }) {
   return (
@@ -104,6 +105,9 @@ export default function AudioSettings({ live = false }) {
         </div>
       )}
 
+      {/* קריין – כבוי כרגע (lib/features.js) */}
+      {FEATURES.narrator && (
+      <>
       <div className="su-set-row">
         <div>
           <b>🎙️ קריין</b>
@@ -157,6 +161,8 @@ export default function AudioSettings({ live = false }) {
           </div>
           <Switch checked={p.readWinners} onChange={(v) => set({ readWinners: v })} />
         </div>
+      )}
+      </>
       )}
     </>
   );

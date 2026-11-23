@@ -174,11 +174,6 @@ export default function Game({ gameId, me, onExit }) {
             <span className="ph-lbl">להצבעה מתקשרות</span>
             {me?.phoneInfo ? <b className="ph-num">{me.phoneInfo}</b> : <span>למספר המשחק</span>}
           </span>
-          {state && (
-            <span className="pin-box">
-              קוד משחק <b>{state.game.pin}</b>
-            </span>
-          )}
         </div>
       </div>
       {drawer && state && (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { music } from '../lib/music.js';
 import { speakWith, stopAll, prefetchAi } from '../lib/narrator.js';
 import { usePrefs } from '../lib/prefs.js';
+import { FEATURES } from '../lib/features.js';
 
 // מה הקריין אומר בכל שלב
 function narrationFor(view) {
@@ -63,7 +64,7 @@ export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transi
   // הכנת הקראת השאלה הבאה בקול AI מראש – בזמן שהווילון סגור
   const upcomingText = upcoming && upcoming.game.phase === 'question' ? narrationFor(upcoming)?.text : '';
   useEffect(() => {
-    if (prefs.narrator && prefs.engine === 'ai' && upcomingText) prefetchAi(upcomingText, prefs.aiVoice);
+    if (FEATURES.narrator && prefs.narrator && prefs.engine === 'ai' && upcomingText) prefetchAi(upcomingText, prefs.aiVoice);
   }, [upcomingText, prefs.narrator, prefs.engine, prefs.aiVoice]);
 
   // איזו מנגינה מתנגנת
@@ -94,7 +95,7 @@ export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transi
     const key = `${shownScene}:${phase}`;
     if (spokenRef.current === key) return;
     spokenRef.current = key;
-    if (!prefs.narrator) return;
+    if (!FEATURES.narrator || !prefs.narrator) return; // קריין כבוי כרגע (lib/features.js)
     const n = narrationFor(view);
     if (!n || (n.winners && !prefs.readWinners)) return;
     // רגע קטן אחרי האנימציה

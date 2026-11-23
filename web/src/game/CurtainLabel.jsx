@@ -19,9 +19,6 @@ export default function CurtainLabel({ label, state, phone }) {
             <b>{phone}</b>
           </div>
         )}
-        <div className="curtain-sub">
-          ומצטרפות! קוד משחק: <b>{g.pin}</b>
-        </div>
         <div className="lobby-chips">
           {state.players.map((p) => (
             <span key={p.num} className={`lchip ${p.connected ? 'on' : ''}`}>

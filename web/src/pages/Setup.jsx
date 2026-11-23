@@ -74,7 +74,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
             showVoters: settings.showVoters,
             boardEvery: Number(settings.boardEvery) || 0,
             autoPlay: settings.autoPlay,
-            resultsSec: Number(settings.resultsSec) || 8,
+            resultsSec: Number(settings.resultsSec) || 5,
           },
         },
       });

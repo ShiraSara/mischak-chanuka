@@ -1,6 +1,8 @@
 import AutoBadge from './AutoBadge.jsx';
 
 // כפתורי השליטה בתחתית המסך – משתנים לפי שלב המשחק
+import { FEATURES } from '../lib/features.js';
+
 export default function Controls({ game, soundOn, audio, onAction, clockOffset }) {
   const last = game.qIndex + 1 >= game.total;
   // כפתור ראשי גדול, כל השאר קטנים – שהכל ייכנס בשורה אחת
@@ -46,10 +48,11 @@ export default function Controls({ game, soundOn, audio, onAction, clockOffset }
       {autoCtl}
       {B('open_settings', '⚙️ הגדרות', '', 'הגדרות המשחק')}
       {B('music', '🎵', audio?.music ? 'ghost' : 'ghost off', audio?.music ? 'כיבוי מנגינה' : 'הפעלת מנגינה')}
-      {B('narrator', '🎙️', audio?.narrator ? 'ghost' : 'ghost off', audio?.narrator ? 'כיבוי קריין' : 'הפעלת קריין')}
+      {/* קריין וסימולטור – כבויים כרגע (lib/features.js) */}
+      {FEATURES.narrator && B('narrator', '🎙️', audio?.narrator ? 'ghost' : 'ghost off', audio?.narrator ? 'כיבוי קריין' : 'הפעלת קריין')}
       {B('sound', soundOn ? '🔊' : '🔇', 'ghost', 'צלילי משחק')}
       {B('fullscreen', '⛶', 'ghost', 'מסך מלא')}
-      {B('sim', '📱', 'ghost', 'סימולטור טלפון (בדיקה)')}
+      {FEATURES.simulator && B('sim', '📱', 'ghost', 'סימולטור טלפון (בדיקה)')}
     </div>
   );
 }
