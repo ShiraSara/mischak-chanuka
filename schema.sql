@@ -11,12 +11,22 @@ CREATE TABLE IF NOT EXISTS codes (
   ai_month TEXT,               -- החודש של המונה (YYYY-MM)
   ai_limit INTEGER             -- מגבלה חודשית (NULL = ברירת המחדל)
 );
-CREATE TABLE IF NOT EXISTS bank (
+CREATE TABLE IF NOT EXISTS banks (     -- מאגרי שאלות (סולידי / נועז / ...)
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  sort INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS bank (      -- השאלות במאגרים
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   text TEXT NOT NULL,
   type TEXT NOT NULL DEFAULT 'names',   -- names | options
-  options TEXT,                         -- JSON array כשהסוג options
-  sort INTEGER DEFAULT 0
+  options TEXT,                         -- JSON array: תשובות קבועות / תשובות נוספות לשמות
+  sort INTEGER DEFAULT 0,
+  bank_id INTEGER,
+  topic TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,

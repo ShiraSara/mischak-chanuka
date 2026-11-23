@@ -36,6 +36,16 @@ export default function CurtainLabel({ label, state, phone }) {
       </>
     );
   }
+  if (label.kind === 'question' && label.topic)
+    return (
+      <div className="topic-card">
+        <span className="topic-kicker">נושא חדש</span>
+        <div className="topic-name">{label.topic}</div>
+        <span className="topic-q">
+          שאלה {label.index + 1} מתוך {label.total}
+        </span>
+      </div>
+    );
   if (label.kind === 'question')
     return (
       <div className="q-sticker">

@@ -14,6 +14,7 @@ import { stopAll } from '../lib/narrator.js';
 
 const CURTAIN_MS = 1100; // משך סגירת הווילון
 const HOLD_MS = 1300; // כמה זמן הווילון נשאר סגור עם "שאלה N"
+const TOPIC_EXTRA_MS = 1600; // עוד זמן כשמתחיל נושא חדש
 
 // כל שאלה היא "סצנה". בין סצנות הווילון נסגר ונפתח.
 const sceneOf = (s) => {
@@ -85,13 +86,18 @@ export default function Game({ gameId, me, onExit }) {
         ? { kind: 'ended' }
         : scene.startsWith('b')
         ? { kind: 'board' }
-        : { kind: 'question', index: state.game.qIndex, total: state.game.total };
+        : {
+            kind: 'question',
+            index: state.game.qIndex,
+            total: state.game.total,
+            topic: state.question?.topicChanged ? state.question.topic : null, // מעבר לנושא חדש
+          };
     const wasClosed = closedRef.current;
     setCurtain({ closed: true, label });
     timerRef.current = setTimeout(() => {
       setShownScene(scene);
       setCurtain({ closed: false, label });
-    }, (wasClosed ? 0 : CURTAIN_MS) + HOLD_MS);
+    }, (wasClosed ? 0 : CURTAIN_MS) + HOLD_MS + (label.topic ? TOPIC_EXTRA_MS : 0));
   }, [state]);
 
   if (state && sceneOf(state) === shownScene) snapRef.current = state;

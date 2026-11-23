@@ -493,3 +493,12 @@ input[type=range] { accent-color: var(--c1); }
 .drawer .su-set-row { padding: 12px 2px; }
 .drawer .styles-row { grid-template-columns: repeat(3, 1fr); }
 .drawer .su-timer button { padding: 5px 10px; min-width: 44px; }
+
+/* מסך מעבר לנושא חדש */
+.topic-card {
+  background: var(--ink); color: #fff; border: 3px solid #fff; border-radius: 26px; box-shadow: 10px 10px 0 var(--c2);
+  padding: 26px 60px 30px; text-align: center; transform: rotate(-2deg); display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.topic-kicker { background: var(--c2); color: var(--ink); font-weight: 800; border-radius: 10px; padding: 3px 14px; font-size: 1.1rem; letter-spacing: 1px; }
+.topic-name { font-weight: 900; font-size: clamp(3rem, 7vw, 5.5rem); line-height: 1.1; color: #fff; }
+.topic-q { color: color-mix(in srgb, #fff 70%, transparent); font-weight: 700; font-size: 1.2rem; }

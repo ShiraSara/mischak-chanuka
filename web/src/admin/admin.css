@@ -42,3 +42,22 @@
 .ai-status { font-weight: 800; padding: 10px 14px; border: 2.5px solid var(--ink); border-radius: 12px; margin-bottom: 10px; }
 .ai-status.ok { background: #dcfce7; }
 .ai-status.bad { background: #ffe3e5; }
+
+/* מאגרי שאלות */
+.bank-card.off { opacity: .55; }
+.bank-card.add { align-items: center; justify-content: center; border-style: dashed; box-shadow: none; }
+.bank-meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; padding: 14px; margin-bottom: 16px; border: 2.5px dashed var(--line); border-radius: 16px; }
+.bank-meta label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: .9rem; }
+.admin-qs { display: flex; flex-direction: column; gap: 10px; }
+.aq { display: grid; grid-template-columns: 30px 1fr 46px; gap: 10px; align-items: start; padding: 12px; border: 2.5px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: 3px 3px 0 var(--ink); }
+.aq-move { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.aq-move button { border: 2px solid var(--ink); background: #fff; border-radius: 8px; cursor: pointer; font-size: .7rem; padding: 2px 0; }
+.aq-move button:hover { background: var(--c2); }
+.aq-body { display: flex; flex-direction: column; gap: 8px; }
+.aq-text { font-weight: 700; font-size: 1.08rem; }
+.aq-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.aq-type button { padding: 5px 12px; font-size: .88rem; }
+.aq-answers { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.aq-answers .muted { font-size: .88rem; }
+.aq-answer { border: 0 !important; background: transparent !important; padding: 0 2px !important; font: inherit; font-weight: 700; width: auto !important; box-shadow: none !important; }
+.admin-save { position: sticky; bottom: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #fff; padding: 14px 0 4px; margin-top: 14px; border-top: 2.5px dashed var(--line); }

@@ -78,7 +78,7 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
           </div>
           <ThemePicker />
         </div>
-        {row('shuffle', '🔀 ערבוב סדר השאלות', 'השאלות יופיעו בסדר אקראי')}
+        {row('shuffle', '🔀 ערבוב סדר השאלות', 'בתוך כל נושא – השאלות יופיעו בסדר אקראי')}
         {row('allowSelfVote', '🙋‍♀️ מותר להצביע לעצמך', 'כשהתשובות הן שמות – אפשר לבחור גם בעצמך')}
         {row(
           'autoPlay',

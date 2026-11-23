@@ -3,59 +3,84 @@ import { api, shuffle, withId } from '../lib/api.js';
 import ImportDialog from './ImportDialog.jsx';
 import { FEATURES } from '../lib/features.js';
 
-// שלב 2: בחירת שאלות, עריכה, הוספה ושמירה כמאגר אישי
-export default function QuestionsEditor({ questions, setQuestions, custom, setCustom, ai, setAi }) {
-  const [importing, setImporting] = useState(false);
+const NO_TOPIC = 'כללי';
+const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
+
+// שלב 2: בחירת מאגר, בחירת שאלות לפי נושאים, עריכה והוספה
+export default function QuestionsEditor({ questions, setQuestions, banks, bankId, onPickBank, onBanksChanged, ai, setAi }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | on
   const [randomN, setRandomN] = useState(15);
   const [msg, setMsg] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const update = (id, patch) => setQuestions(questions.map((q) => (q.id === id ? { ...q, ...patch } : q)));
   const remove = (id) => setQuestions(questions.filter((q) => q.id !== id));
-  const setAll = (on) => setQuestions(questions.map((q) => ({ ...q, on })));
+  const setAll = (on, topic) => setQuestions(questions.map((q) => (topic == null || topicOf(q) === topic ? { ...q, on } : q)));
   const pickRandom = () => {
     const n = Math.max(1, Number(randomN) || 10);
     const chosen = new Set(shuffle(questions.map((q) => q.id)).slice(0, n));
     setQuestions(questions.map((q) => ({ ...q, on: chosen.has(q.id) })));
   };
-  const add = () => {
+  // שאלה חדשה – בסוף הנושא שבחרו (או בראש הרשימה)
+  const add = (topic = '') => {
     setSearch('');
     setFilter('all');
-    setQuestions([withId({ text: '', type: 'names', options: [], on: true, isNew: true }), ...questions]);
+    const q = withId({ text: '', type: 'names', options: [], topic: topic === NO_TOPIC ? '' : topic, on: true, isNew: true });
+    if (!topic) return setQuestions([q, ...questions]);
+    const last = questions.map(topicOf).lastIndexOf(topic);
+    setQuestions([...questions.slice(0, last + 1), q, ...questions.slice(last + 1)]);
   };
 
-  const save = async () => {
+  const pick = async (id) => {
+    if (id === bankId) return;
+    const edited = questions.some((q) => q.isNew || q.edited);
+    if (edited && !confirm('השינויים שעשית ברשימה הנוכחית לא יישמרו. לעבור מאגר?')) return;
+    setMsg('');
+    await onPickBank(id);
+  };
+
+  const saveMine = async () => {
     try {
-      const r = await api('/api/questions', { method: 'PUT', body: { questions } });
-      const onTexts = new Set(questions.filter((q) => q.on).map((q) => q.text.trim()));
-      setQuestions(r.questions.map((q) => withId({ ...q, on: onTexts.has(q.text) })));
-      setCustom(true);
-      setMsg('✓ נשמר! בפעם הבאה שתיכנסי עם הקוד השאלות יופיעו כך');
+      await api('/api/questions', { method: 'PUT', body: { questions } });
+      await onBanksChanged('mine');
+      setMsg('✓ נשמר! הרשימה מופיעה עכשיו כמאגר "השאלות שלי"');
     } catch (er) {
       alert(er.message);
     }
   };
-  const reset = async () => {
-    if (!confirm('להחזיר את מאגר השאלות הכללי? השינויים ששמרת יימחקו.')) return;
-    const r = await api('/api/questions', { method: 'DELETE' });
-    setQuestions(r.questions.map((q) => withId({ ...q, on: true })));
-    setCustom(false);
+  const deleteMine = async () => {
+    if (!confirm('למחוק את הרשימה השמורה "השאלות שלי"?')) return;
+    await api('/api/questions', { method: 'DELETE' });
     setMsg('');
+    await onBanksChanged();
   };
 
+  const topics = [...new Set(questions.map(topicOf))];
   const onCount = questions.filter((q) => q.on).length;
   const s = search.trim();
-  const shown = questions.filter((q) => (filter === 'all' || q.on) && (!s || q.text.includes(s) || q.isNew));
+  const visible = (q) => (filter === 'all' || q.on) && (!s || q.text.includes(s) || q.isNew);
 
   return (
     <div className="su-card">
       <div className="su-card-head">
         <div>
           <h2>אילו שאלות במשחק?</h2>
-          <p>מסמנים את השאלות שרוצים. אפשר ללחוץ על כל שאלה ולשנות את הנוסח.</p>
+          <p>בוחרים מאגר, ומסמנים את השאלות שרוצים. אפשר ללחוץ על כל שאלה ולשנות את הנוסח.</p>
         </div>
         <span className="su-count">{onCount} נבחרו</span>
+      </div>
+
+      {/* בחירת מאגר */}
+      <div className="bank-pick">
+        {banks.map((b) => (
+          <button key={b.id} className={`bank-card ${b.id === bankId ? 'on' : ''}`} onClick={() => pick(b.id)}>
+            <span className="ic">{b.icon || '📚'}</span>
+            <b>{b.name}</b>
+            <small>{b.description}</small>
+            <span className="cnt">{b.count} שאלות</span>
+          </button>
+        ))}
       </div>
 
       <div className="su-qbar">
@@ -77,7 +102,7 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
             📥 ייבוא מתמונה / טקסט
           </button>
         )}
-        <button className="btn primary" onClick={add}>
+        <button className="btn primary" onClick={() => add()}>
           + שאלה חדשה
         </button>
       </div>
@@ -90,11 +115,40 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
         <button className="btn small" onClick={pickRandom}>שאלות</button>
       </div>
 
-      <div className="su-qlist">
-        {shown.map((q) => (
-          <QuestionRow key={q.id} q={q} onChange={(patch) => update(q.id, patch)} onRemove={() => remove(q.id)} />
+      <datalist id="topics-list">
+        {topics.filter((t) => t !== NO_TOPIC).map((t) => (
+          <option key={t} value={t} />
         ))}
-        {!shown.length && <div className="su-empty">{filter === 'on' ? 'עוד לא נבחרו שאלות' : 'לא נמצאו שאלות'}</div>}
+      </datalist>
+
+      <div className="su-qlist">
+        {topics.map((t) => {
+          const inTopic = questions.filter((q) => topicOf(q) === t);
+          const shown = inTopic.filter(visible);
+          if (!shown.length) return null;
+          const on = inTopic.filter((q) => q.on).length;
+          return (
+            <section key={t} className="topic-group">
+              <div className="topic-head">
+                <b>📂 {t}</b>
+                <span className="muted">
+                  {on} / {inTopic.length}
+                </span>
+                <span className="grow" />
+                <button className="btn small" onClick={() => setAll(on < inTopic.length, t)}>
+                  {on < inTopic.length ? 'סימון כל הנושא' : 'ביטול הנושא'}
+                </button>
+                <button className="btn small ghost" onClick={() => add(t)}>
+                  + שאלה בנושא
+                </button>
+              </div>
+              {shown.map((q) => (
+                <QuestionRow key={q.id} q={q} onChange={(patch) => update(q.id, { ...patch, edited: true })} onRemove={() => remove(q.id)} />
+              ))}
+            </section>
+          );
+        })}
+        {!questions.some(visible) && <div className="su-empty">{filter === 'on' ? 'עוד לא נבחרו שאלות' : 'לא נמצאו שאלות'}</div>}
       </div>
 
       {importing && (
@@ -113,15 +167,12 @@ export default function QuestionsEditor({ questions, setQuestions, custom, setCu
       )}
 
       <div className="su-qfoot">
-        <span className="muted" style={{ fontSize: '.92rem' }}>
-          {custom ? '📁 מוצג המאגר האישי ששמרת' : '📁 מוצג מאגר השאלות הכללי'}
-        </span>
         <span className="grow" style={{ flex: 1 }} />
         {msg && <span className="msg">{msg}</span>}
-        <button className="btn small" onClick={save}>💾 שמירת השאלות לפעם הבאה</button>
-        {custom && (
-          <button className="btn small ghost" onClick={reset}>
-            חזרה למאגר הכללי
+        <button className="btn small" onClick={saveMine}>💾 שמירה כ"השאלות שלי"</button>
+        {banks.some((b) => b.id === 'mine') && (
+          <button className="btn small ghost" onClick={deleteMine}>
+            מחיקת "השאלות שלי"
           </button>
         )}
       </div>
@@ -162,28 +213,35 @@ function QuestionRow({ q, onChange, onRemove }) {
           <button className={`su-type ${q.type === 'options' ? 'opt' : ''}`} onClick={toggleType} title="לחצי להחלפה">
             {q.type === 'names' ? '👥 התשובות: שמות המשתתפות' : '🔘 התשובות: אפשרויות קבועות'}
           </button>
-          {(
-            <div className="su-chips">
-              {q.type === 'names' && q.options.length > 0 && <span className="muted" style={{ fontSize: '.85rem' }}>+ בנוסף לשמות:</span>}
-              {q.options.map((o, i) => (
-                <span className={`su-chip ${q.type === 'names' ? 'extra' : ''}`} key={i}>
-                  {q.type === 'options' && <b style={{ fontWeight: 900 }}>{i + 1}</b>} {o}
-                  <button title="הסרה" onClick={() => onChange({ options: q.options.filter((_, j) => j !== i) })}>
-                    ✕
-                  </button>
-                </span>
-              ))}
-              <input
-                className="su-chip-input"
-                type="text"
-                value={draft}
-                placeholder={q.type === 'names' ? '+ תשובה נוספת, למשל "אף אחת"' : '+ תשובה (Enter)'}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
-                onBlur={addOption}
-              />
-            </div>
-          )}
+          <div className="su-chips">
+            {q.type === 'names' && q.options.length > 0 && <span className="muted" style={{ fontSize: '.85rem' }}>+ בנוסף לשמות:</span>}
+            {q.options.map((o, i) => (
+              <span className={`su-chip ${q.type === 'names' ? 'extra' : ''}`} key={i}>
+                {q.type === 'options' && <b style={{ fontWeight: 900 }}>{i + 1}</b>} {o}
+                <button title="הסרה" onClick={() => onChange({ options: q.options.filter((_, j) => j !== i) })}>
+                  ✕
+                </button>
+              </span>
+            ))}
+            <input
+              className="su-chip-input"
+              type="text"
+              value={draft}
+              placeholder={q.type === 'names' ? '+ תשובה נוספת, למשל "אף אחת"' : '+ תשובה (Enter)'}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
+              onBlur={addOption}
+            />
+          </div>
+          <input
+            className="su-topic-input"
+            type="text"
+            list="topics-list"
+            value={q.topic || ''}
+            placeholder="📂 נושא"
+            title="הנושא של השאלה"
+            onChange={(e) => onChange({ topic: e.target.value })}
+          />
         </div>
       </div>
       <button className="su-x" title="מחיקת השאלה" onClick={onRemove}>

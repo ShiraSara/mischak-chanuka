@@ -1,4 +1,4 @@
-import { DEFAULT_QUESTIONS } from './defaults.js';
+import { DEFAULT_QUESTIONS, DEFAULT_BANKS } from './defaults.js';
 import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
@@ -6,7 +6,10 @@ import { synthesize, diagnoseTts } from './tts.js';
 const MAX_PLAYERS = 15;
 const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
 const READ_SEC = 20;
-const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו // כמה שניות המערכת הטלפונית מחכה להקשה לפני שהיא שואלת שוב
+const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו
+const TOPIC_REVEAL_MS = 1600; // תוספת כשמוצג מסך "נושא חדש"
+// זמן עד שהשאלה נחשפת (ארוך יותר כשמתחיל נושא חדש)
+const revealDelay = (g, i) => REVEAL_MS + (g.questions[i]?.topic && (i === 0 || g.questions[i - 1]?.topic !== g.questions[i].topic) ? TOPIC_REVEAL_MS : 0);
 
 // ---------- כלים כלליים ----------
 const now = () => Date.now();
@@ -76,32 +79,53 @@ function cleanQuestions(list) {
 }
 
 // ---------- מאגר שאלות כללי ----------
-async function getBank(env) {
-  let { results } = await env.DB.prepare('SELECT * FROM bank ORDER BY sort, id').all();
-  if (!results.length) {
-    const stmts = DEFAULT_QUESTIONS.map((q, i) =>
-      env.DB.prepare('INSERT INTO bank (text, type, options, sort) VALUES (?, ?, ?, ?)').bind(
+// מערכת חדשה – יוצרים את המאגרים הבסיסיים ושאלות ברירת מחדל
+async function ensureBanks(env) {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM banks').first();
+  if (row.n) return;
+  const stmts = DEFAULT_BANKS.map((b, i) =>
+    env.DB.prepare('INSERT INTO banks (id, name, description, icon, sort) VALUES (?, ?, ?, ?, ?)').bind(i + 1, b.name, b.description, b.icon, i + 1)
+  );
+  stmts.push(env.DB.prepare('DELETE FROM bank WHERE bank_id = 1 OR bank_id IS NULL'));
+  DEFAULT_QUESTIONS.forEach((q, i) =>
+    stmts.push(
+      env.DB.prepare('INSERT INTO bank (bank_id, text, type, options, topic, sort) VALUES (1, ?, ?, ?, ?, ?)').bind(
         q.text,
         q.type,
         JSON.stringify(q.options || []),
+        q.topic || '',
         i
       )
-    );
-    await env.DB.batch(stmts);
-    ({ results } = await env.DB.prepare('SELECT * FROM bank ORDER BY sort, id').all());
-  }
-  return results.map((r) => ({ text: r.text, type: r.type, options: JSON.parse(r.options || '[]') }));
+    )
+  );
+  await env.DB.batch(stmts);
 }
 
-async function setBank(env, list) {
+async function listBanks(env, { all = false } = {}) {
+  await ensureBanks(env);
+  const { results } = await env.DB.prepare(
+    `SELECT b.*, (SELECT COUNT(*) FROM bank q WHERE q.bank_id = b.id) AS count FROM banks b ORDER BY b.sort, b.id`
+  ).all();
+  return results.filter((b) => all || (b.active && b.count > 0));
+}
+
+async function getBankQuestions(env, bankId) {
+  await ensureBanks(env);
+  const { results } = await env.DB.prepare('SELECT * FROM bank WHERE bank_id = ? ORDER BY sort, id').bind(bankId).all();
+  return results.map((r) => ({ text: r.text, type: r.type, options: JSON.parse(r.options || '[]'), topic: r.topic || '' }));
+}
+
+async function setBankQuestions(env, bankId, list) {
   const qs = cleanQuestions(list);
-  const stmts = [env.DB.prepare('DELETE FROM bank')];
+  const stmts = [env.DB.prepare('DELETE FROM bank WHERE bank_id = ?').bind(bankId)];
   qs.forEach((q, i) =>
     stmts.push(
-      env.DB.prepare('INSERT INTO bank (text, type, options, sort) VALUES (?, ?, ?, ?)').bind(
+      env.DB.prepare('INSERT INTO bank (bank_id, text, type, options, topic, sort) VALUES (?, ?, ?, ?, ?, ?)').bind(
+        bankId,
         q.text,
         q.type,
         JSON.stringify(q.options),
+        q.topic,
         i
       )
     )
@@ -231,7 +255,16 @@ async function gameState(env, g) {
       connected: !!p.last_seen,
       voted: voted.has(p.num),
     })),
-    question: q ? { text: q.text, type: q.type, options: opts } : null,
+    question: q
+      ? {
+          text: q.text,
+          type: q.type,
+          options: opts,
+          topic: q.topic || '',
+          // נושא חדש מתחיל כאן? (במעבר בין נושאים מוצג מסך "נושא חדש")
+          topicChanged: !!q.topic && (g.q_index === 0 || (g.questions[g.q_index - 1]?.topic || '') !== q.topic),
+        }
+      : null,
     votesCount: votes.length,
   };
   if (g.phase === 'results' || g.phase === 'ended') {
@@ -350,7 +383,7 @@ async function gameAction(env, g, action, payload = {}) {
   switch (action) {
     case 'start': {
       if (!total) return 'אין שאלות במשחק';
-      const t = now() + REVEAL_MS;
+      const t = now() + revealDelay(g, 0);
       await setPhase(env, g, { status: 'live', q_index: 0, phase: 'question', q_started_at: t });
       await markRound(env, g, 0, t);
       break;
@@ -368,7 +401,7 @@ async function gameAction(env, g, action, payload = {}) {
         await setPhase(env, g, { phase: 'board' });
         break;
       }
-      const t = now() + REVEAL_MS;
+      const t = now() + revealDelay(g, g.q_index + 1);
       await setPhase(env, g, { q_index: g.q_index + 1, phase: 'question', q_started_at: t });
       await markRound(env, g, g.q_index, t);
       break;
@@ -575,6 +608,7 @@ export default {
 };
 
 async function hostRoutes(req, env, path, method, c) {
+  const url = new URL(req.url);
   if (path === '/api/me') {
     return json({
       label: c.label,
@@ -621,20 +655,32 @@ async function hostRoutes(req, env, path, method, c) {
     }
   }
 
+  // המאגרים שאפשר לבחור מהם (וגם "השאלות שלי" אם שמרה)
+  if (path === '/api/banks' && method === 'GET') {
+    const banks = (await listBanks(env)).map(({ id, name, description, icon, count }) => ({ id, name, description, icon, count }));
+    const mine = c.questions ? JSON.parse(c.questions) : null;
+    if (mine?.length) banks.unshift({ id: 'mine', name: 'השאלות שלי', description: 'הרשימה ששמרת', icon: '💾', count: mine.length });
+    return json({ banks });
+  }
+
   if (path === '/api/questions') {
     if (method === 'GET') {
-      const custom = c.questions ? JSON.parse(c.questions) : null;
-      return json({ questions: custom || (await getBank(env)), custom: !!custom });
+      const bank = url.searchParams.get('bank');
+      if (bank === 'mine') return json({ questions: c.questions ? JSON.parse(c.questions) : [] });
+      const banks = await listBanks(env);
+      const id = Number(bank) || banks[0]?.id;
+      if (!banks.some((b) => b.id === id)) return err('המאגר לא נמצא', 404);
+      return json({ questions: await getBankQuestions(env, id) });
     }
     if (method === 'PUT') {
       const { questions } = await body(req);
       const qs = cleanQuestions(questions);
       await env.DB.prepare('UPDATE codes SET questions = ? WHERE code = ?').bind(JSON.stringify(qs), c.code).run();
-      return json({ questions: qs, custom: true });
+      return json({ questions: qs });
     }
     if (method === 'DELETE') {
       await env.DB.prepare('UPDATE codes SET questions = NULL WHERE code = ?').bind(c.code).run();
-      return json({ questions: await getBank(env), custom: false });
+      return json({ ok: true });
     }
   }
 
@@ -784,11 +830,46 @@ async function adminRoutes(req, env, path, method) {
     return json({ ...main, ...voice });
   }
 
-  if (path === '/api/admin/bank') {
-    if (method === 'GET') return json({ questions: await getBank(env) });
-    if (method === 'PUT') {
-      const { questions } = await body(req);
-      return json({ questions: await setBank(env, questions) });
+  // ---- מאגרי שאלות ----
+  if (path === '/api/admin/banks') {
+    if (method === 'GET') return json({ banks: await listBanks(env, { all: true }) });
+    if (method === 'POST') {
+      const b = await body(req);
+      const name = String(b.name || '').trim().slice(0, 40);
+      if (!name) return err('צריך שם למאגר');
+      const max = await env.DB.prepare('SELECT COALESCE(MAX(sort), 0) AS m FROM banks').first();
+      const r = await env.DB.prepare('INSERT INTO banks (name, description, icon, sort) VALUES (?, ?, ?, ?) RETURNING id')
+        .bind(name, String(b.description || '').slice(0, 120), String(b.icon || '📚').slice(0, 4), max.m + 1)
+        .first();
+      return json({ id: r.id });
+    }
+  }
+  const bm = path.match(/^\/api\/admin\/banks\/(\d+)(\/questions)?$/);
+  if (bm) {
+    const id = Number(bm[1]);
+    if (bm[2]) {
+      if (method === 'GET') return json({ questions: await getBankQuestions(env, id) });
+      if (method === 'PUT') {
+        const { questions } = await body(req);
+        return json({ questions: await setBankQuestions(env, id, questions) });
+      }
+    } else {
+      if (method === 'PATCH') {
+        const b = await body(req);
+        const sets = [];
+        const vals = [];
+        for (const [k, max] of [['name', 40], ['description', 120], ['icon', 4]])
+          if (k in b) (sets.push(`${k} = ?`), vals.push(String(b[k] || '').slice(0, max)));
+        if ('active' in b) (sets.push('active = ?'), vals.push(b.active ? 1 : 0));
+        if ('sort' in b) (sets.push('sort = ?'), vals.push(Number(b.sort) || 0));
+        if (!sets.length) return err('אין שינויים');
+        await env.DB.prepare(`UPDATE banks SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, id).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE') {
+        await env.DB.batch([env.DB.prepare('DELETE FROM bank WHERE bank_id = ?').bind(id), env.DB.prepare('DELETE FROM banks WHERE id = ?').bind(id)]);
+        return json({ ok: true });
+      }
     }
   }
 

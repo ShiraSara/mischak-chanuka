@@ -18,7 +18,8 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
   const [step, setStep] = useState(0);
   const [players, setPlayers] = useState(emptyPlayers); // רשימה חדשה לכל משחק
   const [questions, setQuestions] = useState([]);
-  const [custom, setCustom] = useState(false);
+  const [banks, setBanks] = useState([]);
+  const [bankId, setBankId] = useState(null);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [error, setError] = useState('');
   const [ai, setAi] = useState(me?.ai || null);
@@ -26,11 +27,22 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
 
   useEffect(() => {
     localStorage.removeItem('seker_players'); // ניקוי רשימה ישנה שנשמרה בגרסה קודמת
-    api('/api/questions').then((r) => {
-      setQuestions(r.questions.map((q) => withId({ ...q, on: true })));
-      setCustom(r.custom);
-    });
+    loadBanks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // המאגרים, ובחירת הראשון
+  const loadBanks = async (pick) => {
+    const r = await api('/api/banks');
+    setBanks(r.banks);
+    const id = pick ?? r.banks.find((b) => b.id !== 'mine')?.id ?? r.banks[0]?.id;
+    if (id != null) await pickBank(id);
+  };
+  const pickBank = async (id) => {
+    setBankId(id);
+    const r = await api('/api/questions?bank=' + id);
+    setQuestions(r.questions.map((q) => withId({ ...q, on: true })));
+  };
 
   const filled = players.filter((p) => p.name.trim());
   const chosen = questions.filter((q) => q.on && q.text.trim());
@@ -61,12 +73,17 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
     setError('');
     setBusy(true);
     try {
-      const qs = settings.shuffle ? shuffle(chosen) : chosen;
+      // השאלות מסודרות לפי נושאים (בסדר שבו הנושאים מופיעים); ערבוב – בתוך כל נושא
+      const topics = [...new Set(chosen.map((q) => q.topic || ''))];
+      const qs = topics.flatMap((t) => {
+        const inTopic = chosen.filter((q) => (q.topic || '') === t);
+        return settings.shuffle ? shuffle(inTopic) : inTopic;
+      });
       const r = await api('/api/games', {
         method: 'POST',
         body: {
           players: filled,
-          questions: qs.map(({ text, type, options }) => ({ text, type, options })),
+          questions: qs.map(({ text, type, options, topic }) => ({ text, type, options, topic })),
           settings: {
             timerSec: Number(settings.timerSec) || 0,
             allowSelfVote: settings.allowSelfVote,
@@ -138,7 +155,16 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
       <main className="su-body">
         {step === 0 && <PlayersEditor players={players} setPlayers={setPlayers} />}
         {step === 1 && (
-          <QuestionsEditor questions={questions} setQuestions={setQuestions} custom={custom} setCustom={setCustom} ai={ai} setAi={setAi} />
+          <QuestionsEditor
+            questions={questions}
+            setQuestions={setQuestions}
+            banks={banks}
+            bankId={bankId}
+            onPickBank={pickBank}
+            onBanksChanged={loadBanks}
+            ai={ai}
+            setAi={setAi}
+          />
         )}
         {step === 2 && (
           <SettingsPanel settings={settings} setSettings={setSettings} playersCount={filled.length} questionsCount={chosen.length} />
