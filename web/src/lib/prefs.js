@@ -2,11 +2,18 @@
 import { useEffect, useState } from 'react';
 
 const KEY = 'seker_audio';
-const DEFAULTS = { music: true, musicVolume: 0.7, musicStyle: 'quiz', narrator: true, engine: 'ai', aiVoice: 'Kore', voice: '', readWinners: true };
+const DEFAULTS = { music: true, musicVolume: 0.7, musicStyle: 'auto', narrator: true, engine: 'ai', aiVoice: 'Kore', voice: '', readWinners: true };
 
 export function getPrefs() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+    const stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+    // מעבר למנגינות החדשות: מי ששמר בעבר מנגינה מובנית – מתחיל מהמנגינה החדשה (אפשר לבחור שוב)
+    if (!stored.tracksV1) {
+      stored.musicStyle = 'auto';
+      stored.tracksV1 = true;
+      localStorage.setItem(KEY, JSON.stringify(stored));
+    }
+    return { ...DEFAULTS, ...stored };
   } catch {
     return { ...DEFAULTS };
   }

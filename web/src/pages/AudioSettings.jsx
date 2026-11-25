@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getPrefs, setPrefs } from '../lib/prefs.js';
 import { hebrewVoices, onVoicesChanged, speakWith, stopAll, AI_VOICES } from '../lib/narrator.js';
 import { music, MUSIC_STYLES } from '../lib/music.js';
+import { getTracks, resolveStyle } from '../lib/tracks.js';
 import { FEATURES } from '../lib/features.js';
 
 function Switch({ checked, onChange }) {
@@ -26,12 +27,15 @@ export default function AudioSettings({ live = false }) {
   // מנגינות שהמנהלת העלתה
   const [tracks, setTracks] = useState([]);
   useEffect(() => {
-    fetch('/api/music')
-      .then((r) => r.json())
-      .then((d) => setTracks(d.tracks || []))
-      .catch(() => {});
+    getTracks().then(setTracks);
   }, []);
-  const styles = [...tracks.map((t) => ({ id: 'track:' + t.id, name: t.name, icon: '🎶' })), ...MUSIC_STYLES];
+  // אימוג'י בתחילת שם המנגינה – משמש כאייקון שלה
+  const EMO = /^(\p{Extended_Pictographic}\uFE0F?)\s*/u;
+  const styles = [
+    ...tracks.map((t) => ({ id: 'track:' + t.id, name: t.name.replace(EMO, ''), icon: t.name.match(EMO)?.[1] || '🎶' })),
+    ...MUSIC_STYLES,
+  ];
+  const current = resolveStyle(p.musicStyle, tracks);
 
   useEffect(() => onVoicesChanged(() => setVoices(hebrewVoices())), []);
   useEffect(
@@ -94,7 +98,7 @@ export default function AudioSettings({ live = false }) {
       {p.music && (
         <div className="styles-row">
           {styles.map((st) => (
-            <div key={st.id} className={`style-card ${p.musicStyle === st.id ? 'on' : ''}`} onClick={() => set({ musicStyle: st.id })}>
+            <div key={st.id} className={`style-card ${current === st.id ? 'on' : ''}`} onClick={() => set({ musicStyle: st.id })}>
               <span className="ic">{st.icon}</span>
               <b>{st.name}</b>
               {!live && (

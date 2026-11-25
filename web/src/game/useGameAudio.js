@@ -3,6 +3,7 @@ import { music } from '../lib/music.js';
 import { speakWith, stopAll, prefetchAi } from '../lib/narrator.js';
 import { usePrefs } from '../lib/prefs.js';
 import { FEATURES } from '../lib/features.js';
+import { getTracks, resolveStyle } from '../lib/tracks.js';
 
 // מה הקריין אומר בכל שלב
 function narrationFor(view) {
@@ -59,7 +60,9 @@ export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transi
   }, []);
 
   useEffect(() => music.setVolume(prefs.musicVolume), [prefs.musicVolume]);
-  useEffect(() => music.setStyle(prefs.musicStyle), [prefs.musicStyle]);
+  useEffect(() => {
+    getTracks().then((tracks) => music.setStyle(resolveStyle(prefs.musicStyle, tracks)));
+  }, [prefs.musicStyle]);
 
   // הכנת הקראת השאלה הבאה בקול AI מראש – בזמן שהווילון סגור
   const upcomingText = upcoming && upcoming.game.phase === 'question' ? narrationFor(upcoming)?.text : '';
