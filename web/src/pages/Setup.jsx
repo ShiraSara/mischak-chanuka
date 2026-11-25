@@ -18,6 +18,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
   const [step, setStep] = useState(0);
   const [players, setPlayers] = useState(emptyPlayers); // רשימה חדשה לכל משחק
   const [questions, setQuestions] = useState([]);
+  const [trash, setTrash] = useState([]); // סל מחזור לשאלות שהורדו
   const [banks, setBanks] = useState([]);
   const [bankId, setBankId] = useState(null);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -42,6 +43,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
     setBankId(id);
     const r = await api('/api/questions?bank=' + id);
     setQuestions(r.questions.map((q) => withId({ ...q, on: true })));
+    setTrash([]);
   };
 
   const filled = players.filter((p) => p.name.trim());
@@ -160,6 +162,8 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
           <QuestionsEditor
             questions={questions}
             setQuestions={setQuestions}
+            trash={trash}
+            setTrash={setTrash}
             banks={banks}
             bankId={bankId}
             onPickBank={pickBank}

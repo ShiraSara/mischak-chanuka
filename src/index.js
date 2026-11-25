@@ -5,6 +5,8 @@ import { synthesize, diagnoseTts } from './tts.js';
 import { makeProfiles } from './profiles.js';
 
 const MAX_PLAYERS = 15;
+// טלפון שמחכה להקשה פונה לשרת לפחות כל READ_SEC שניות; בלי פנייה דקה – כנראה ניתק
+const CONNECTED_MS = 60 * 1000;
 const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
 const READ_SEC = 20;
 const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו
@@ -195,8 +197,9 @@ async function gameState(env, g) {
 
   // חשיפה אוטומטית: כולן הצביעו או שהזמן נגמר
   const auto = !!g.settings.autoPlay;
-  if (g.phase === 'question' && !g.paused_at && (g.settings.autoReveal || auto)) {
-    const allVoted = players.length > 0 && votes.length >= players.length;
+  // כשהטיימר נגמר – תמיד עוברים לתוצאות. "כולן הצביעו" – רק במשחק אוטומטי / חשיפה אוטומטית.
+  if (g.phase === 'question' && !g.paused_at) {
+    const allVoted = (g.settings.autoReveal || auto) && players.length > 0 && votes.length >= players.length;
     const timeUp = g.settings.timerSec > 0 && now() - g.q_started_at > g.settings.timerSec * 1000 + 1500;
     if ((allVoted || timeUp) && (await claimPhase(env, g))) {
       await setPhase(env, g, { phase: 'results' });
@@ -234,7 +237,7 @@ async function gameState(env, g) {
       num: p.num,
       name: p.name,
       hasPhone: !!p.phone,
-      connected: !!p.last_seen,
+      connected: !!p.last_seen && now() - p.last_seen < CONNECTED_MS,
       voted: voted.has(p.num),
     })),
     question: q
@@ -266,6 +269,7 @@ async function gameState(env, g) {
         votes: t.reduce((s, o) => s + o.count, 0),
         winners: top > 0 ? t.filter((o) => o.count === top).map((o) => o.label) : [],
         top,
+        results: t.filter((o) => o.count > 0).map((o) => ({ label: o.label, count: o.count })),
       };
     });
   }
@@ -464,7 +468,19 @@ const HANGUP = 'go_to_folder=hangup';
 const SILENT = 't-';
 
 export async function handleYemot(env, params) {
-  if (params.hangup === 'yes') return '';
+  if (params.hangup === 'yes') {
+    const id = params.ApiCallId || params.ApiYFCallId;
+    const c = id && (await env.DB.prepare('SELECT * FROM calls WHERE call_id = ?').bind(id).first());
+    if (c?.game_id && c.num) {
+      await env.DB.prepare(
+        `UPDATE players SET last_seen = NULL WHERE game_id = ? AND num = ?
+         AND NOT EXISTS (SELECT 1 FROM calls WHERE game_id = ? AND num = ? AND created_at > ?)`
+      )
+        .bind(c.game_id, c.num, c.game_id, c.num, c.created_at)
+        .run();
+    }
+    return '';
+  }
   const callId = params.ApiCallId || params.ApiYFCallId;
   if (!callId) return msgCmd([tts('שגיאה')]) + '&' + HANGUP;
   const phone = normPhone(params.ApiPhone);

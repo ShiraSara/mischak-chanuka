@@ -1,18 +1,41 @@
+import { useEffect, useState } from 'react';
 import AutoBadge from './AutoBadge.jsx';
 
 // כפתורי השליטה בתחתית המסך – משתנים לפי שלב המשחק
 import { FEATURES } from '../lib/features.js';
 
+// פעולות שצריך לאשר – אישור קטן בתוך הסרגל (בלי חלון קופץ)
+const CONFIRM = {
+  end: 'לסיים את המשחק?',
+  restart_question: 'למחוק את כל ההצבעות לשאלה הזו?',
+  setup: 'לחזור למסך ההכנה? המשחק יישאר פתוח עד שתיצרי משחק חדש.',
+};
+
 export default function Controls({ game, soundOn, audio, onAction, clockOffset }) {
+  const [ask, setAsk] = useState(null);
+  useEffect(() => setAsk(null), [game.phase, game.qIndex]);
   const last = game.qIndex + 1 >= game.total;
+  const needsConfirm = (a) => CONFIRM[a] && !(a === 'setup' && (game.phase === 'ended' || game.phase === 'lobby'));
   // כפתור ראשי גדול, כל השאר קטנים – שהכל ייכנס בשורה אחת
   const B = (a, label, cls = '', title) => (
-    <button key={a} title={title} className={`btn ${cls.includes('big') ? cls : cls + ' small'}`} onClick={() => onAction(a)}>
+    <button key={a} title={title} className={`btn ${cls.includes('big') ? cls : cls + ' small'}`} onClick={() => (needsConfirm(a) ? setAsk(a) : onAction(a))}>
       {label}
     </button>
   );
+  if (ask)
+    return (
+      <div className="controls">
+        <b className="ctl-ask">{CONFIRM[ask]}</b>
+        <button className="btn danger" onClick={() => (setAsk(null), onAction(ask))}>
+          כן
+        </button>
+        <button className="btn ghost" onClick={() => setAsk(null)}>
+          ביטול
+        </button>
+      </div>
+    );
   let main = [];
-  if (game.phase === 'lobby') main = [B('start', 'מתחילות! ▶', 'primary big'), B('setup', 'חזרה להכנה', 'ghost')];
+  if (game.phase === 'lobby') main = [B('start', 'START ▶', 'primary big'), B('setup', 'חזרה להכנה', 'ghost')];
   else if (game.phase === 'question')
     main = [
       B('reveal', 'הצגת התוצאות', 'primary big'),

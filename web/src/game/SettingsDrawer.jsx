@@ -76,7 +76,7 @@ export default function SettingsDrawer({ game, soundOn, onToggleSound, onChange,
             )}
           {row('🏆 טבלת מובילות', '', <Chips value={s.boardEvery} options={BOARDS} onChange={(v) => set({ boardEvery: v })} />)}
           {row('🙋‍♀️ מותר להצביע לעצמך', '', <Switch checked={s.allowSelfVote} onChange={(v) => set({ allowSelfVote: v })} />)}
-          {row('✨ "מי את בעצם?" בסוף', 'כרטיס אישי לכל משתתפת', <Switch checked={s.profiles !== false} onChange={(v) => set({ profiles: v })} />)}
+          {row('✨ "מה למדתי עלייך?" בסוף', 'כרטיס אישי לכל משתתפת', <Switch checked={s.profiles !== false} onChange={(v) => set({ profiles: v })} />)}
           {row('✅ להראות מי כבר הצביעה', '', <Switch checked={s.showVoters} onChange={(v) => set({ showVoters: v })} />)}
         </div>
 

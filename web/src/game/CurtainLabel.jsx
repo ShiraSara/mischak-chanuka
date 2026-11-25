@@ -2,7 +2,7 @@ import { BRAND } from '../lib/theme.js';
 import Wave from '../lib/Wave.jsx';
 
 // מה שמופיע על ה"דלתות" כשהן סגורות
-export default function CurtainLabel({ label, state }) {
+export default function CurtainLabel({ label, state, onStart }) {
   if (!label) return null;
   if (label.kind === 'lobby' && state) {
     const g = state.game;
@@ -23,8 +23,13 @@ export default function CurtainLabel({ label, state }) {
           ))}
         </div>
         <div className="curtain-sub small">
-          {conn} מתוך {state.players.length} מחוברות · {g.total} שאלות מחכות לכן
+          {conn === state.players.length ? '✓ כולן מחוברות!' : `${conn} מתוך ${state.players.length} מחוברות`}
         </div>
+        {onStart && (
+          <button className="btn start-btn" onClick={onStart}>
+            START <span className="ic">▶</span>
+          </button>
+        )}
         {g.settings.boardEvery > 0 && (
           <div className="curtain-sub small">🏆 מי שמצביעה כמו הרוב – וגם מהר – צוברת נקודות!</div>
         )}
@@ -60,7 +65,7 @@ export default function CurtainLabel({ label, state }) {
     return (
       <div className="q-sticker">
         <div className="marquee">🎊 סוף המשחק</div>
-        <div className="k" style={{ marginTop: 10 }}>ועכשיו... הסיכום!</div>
+        <div className="k" style={{ marginTop: 10 }}>ועכשיו... המנצחת!</div>
       </div>
     );
   return null;

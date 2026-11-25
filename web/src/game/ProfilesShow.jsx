@@ -5,7 +5,7 @@ import Confetti from './Confetti.jsx';
 
 const AUTO_MS = 9000;
 
-// "ועכשיו… מי את בעצם?" – כרטיס אישי לכל משתתפת
+// "אוקיי, אז מה למדתי עלייך?" – כרטיס אישי לכל משתתפת. עובר לבד, ובסוף חוזר למסך המנצחת.
 export default function ProfilesShow({ gameId, soundOn, onClose }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -25,8 +25,8 @@ export default function ProfilesShow({ gameId, soundOn, onClose }) {
   useEffect(() => {
     if (!p) return;
     if (soundOn) playSound('fanfare');
-    if (!auto || i >= list.length - 1) return;
-    const t = setTimeout(() => setI((x) => x + 1), AUTO_MS);
+    if (!auto) return;
+    const t = setTimeout(() => (i >= list.length - 1 ? onClose() : setI((x) => x + 1)), AUTO_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i, data, auto]);
@@ -46,13 +46,13 @@ export default function ProfilesShow({ gameId, soundOn, onClose }) {
     return (
       <div className="pf-wrap">
         <div className="pf-loading">😕 {error}</div>
-        <button className="btn" onClick={onClose}>חזרה לסיכום</button>
+        <button className="btn" onClick={onClose}>חזרה</button>
       </div>
     );
   if (!data)
     return (
       <div className="pf-wrap">
-        <div className="q-title">✨ ועכשיו… מי את בעצם?</div>
+        <div className="q-title">✨ אוקיי, אז מה למדתי עלייך?</div>
         <div className="pf-loading">
           ✍️ כותבות עליכן משהו<span className="dots" />
         </div>
@@ -63,14 +63,14 @@ export default function ProfilesShow({ gameId, soundOn, onClose }) {
     <div className="pf-wrap">
       <div className="pf-top">
         <span className="q-counter">
-          ✨ מי את בעצם? · {i + 1} מתוך {list.length}
+          ✨ מה למדתי עלייך? · {i + 1} מתוך {list.length}
         </span>
         <span className="grow" />
         <button className="btn small ghost pf-btn" onClick={() => setAuto(!auto)}>
           {auto ? '⏸ עצירה' : '▶ אוטומטי'}
         </button>
         <button className="btn small ghost pf-btn" onClick={onClose}>
-          ✕ חזרה לסיכום
+          ✕ חזרה למנצחת
         </button>
       </div>
 

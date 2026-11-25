@@ -616,3 +616,65 @@ input[type=range] { accent-color: var(--c1); }
 .pf-dots span { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, #fff 25%, transparent); cursor: pointer; }
 .pf-dots span.on { background: var(--c2); transform: scale(1.3); }
 .pf-note { text-align: center; color: color-mix(in srgb, #fff 50%, transparent); font-size: .9rem; margin: 0; }
+
+/* כפתור START בפתיחה */
+.curtain-label .start-btn {
+  pointer-events: auto; margin-top: 10px; display: inline-flex; align-items: center; gap: 14px;
+  font-family: var(--font-head); font-weight: 900; font-size: clamp(1.8rem, 3.4vw, 2.6rem); letter-spacing: 3px;
+  padding: 12px 44px; border-radius: 99px; background: var(--c2); color: var(--ink);
+  border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); cursor: pointer; animation: start-pulse 2s ease-in-out infinite;
+}
+.curtain-label .start-btn .ic { font-size: .8em; }
+.curtain-label .start-btn:hover { transform: translateY(-2px); box-shadow: 8px 8px 0 var(--ink); }
+@keyframes start-pulse { 0%, 100% { scale: 1; } 50% { scale: 1.05; } }
+.ctl-ask { font-weight: 900; font-size: 1.15rem; color: var(--ink); }
+.game-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 70; background: var(--danger); color: #fff; font-weight: 800; border-radius: 14px; padding: 10px 20px; border: 2.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+
+/* ===== סוף המשחק: המנצחת בעיגול ===== */
+.end-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; min-height: 100%; padding: 10px 0; }
+.end-kicker { background: var(--c2); color: var(--ink); font-weight: 900; border-radius: 12px; padding: 4px 16px; font-size: 1.2rem; }
+.end-circle {
+  position: relative; width: min(46vh, 420px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c2) 70%, #fff), var(--c2) 60%);
+  color: var(--ink); border: 4px solid #fff; box-shadow: 0 0 0 6px var(--c1), 10px 12px 0 6px var(--c1);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 30px;
+  animation: end-pop .8s cubic-bezier(.2, 1.6, .4, 1) both;
+}
+.end-circle .crown { font-size: clamp(2.4rem, 6vh, 3.6rem); line-height: 1; margin-top: -8px; animation: crown-bob 2.4s ease-in-out infinite; }
+.end-circle .lbl { font-weight: 800; font-size: clamp(1rem, 2.2vh, 1.3rem); opacity: .75; }
+.end-circle .name { font-family: var(--font-head); font-weight: 900; font-size: clamp(2.4rem, 8vh, 4.4rem); line-height: 1.05; overflow-wrap: anywhere; }
+.end-circle .name.many { font-size: clamp(1.6rem, 5vh, 2.6rem); }
+.end-circle .pts { margin-top: 6px; background: var(--ink); color: var(--c2); font-weight: 900; border-radius: 99px; padding: 4px 16px; font-size: clamp(1rem, 2.4vh, 1.3rem); }
+@keyframes end-pop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } }
+@keyframes crown-bob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-6px) rotate(6deg); } }
+.end-more { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.end-pill { background: color-mix(in srgb, #fff 12%, transparent); border: 2px solid color-mix(in srgb, #fff 30%, transparent); border-radius: 99px; padding: 5px 16px; font-weight: 800; font-size: 1.1rem; }
+.end-pill.fast { border-color: var(--c2); color: var(--c2); }
+.end-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+.end-next { color: color-mix(in srgb, #fff 60%, transparent); font-weight: 700; }
+
+/* ===== הכל נכנס במסך אחד – בלי גלילה ===== */
+#view-game { height: 100vh; min-height: 0; overflow: hidden; }
+.stage { height: 100vh; min-height: 0; box-sizing: border-box; }
+.game-main { height: calc(100vh - 64px - 70px); min-height: 0; display: flex; flex-direction: column; }
+.fit-outer { position: relative; flex: 1; min-height: 0; }
+.fit-inner { position: absolute; top: 0; left: 50%; transform-origin: top center; }
+.game-main.enter > * { animation: none; }
+.game-main.enter .fit-inner > * { animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
+.game-main.enter .fit-inner > *:nth-child(2) { animation-delay: .1s; }
+.game-main.enter .fit-inner > *:nth-child(3) { animation-delay: .2s; }
+.game-main.enter .fit-inner > *:nth-child(4) { animation-delay: .3s; }
+.fit-inner .pf-wrap { min-height: 0; }
+.fit-inner .end-wrap { min-height: 0; }
+
+/* חיווי התקדמות בצד */
+.side-progress {
+  position: absolute; z-index: 9; right: max(10px, calc(3.5vw - 34px)); top: 50%; transform: translateY(-50%);
+  width: 68px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px;
+  background: #fff; color: var(--ink); border: 2.5px solid var(--ink); border-radius: 20px; box-shadow: 4px 4px 0 var(--ink);
+}
+.side-progress b { font-family: var(--font-head); font-weight: 900; font-size: 2rem; line-height: 1; color: var(--c1); }
+.side-progress .k { font-size: .78rem; font-weight: 800; text-align: center; line-height: 1.2; }
+.side-progress .bar { width: 10px; height: 18vh; margin-top: 8px; background: var(--line); border-radius: 99px; display: flex; align-items: flex-end; overflow: hidden; }
+.side-progress .bar i { width: 100%; background: var(--c1); border-radius: 99px; transition: height .6s; }
+@media (max-width: 1100px) { .side-progress { display: none; } }

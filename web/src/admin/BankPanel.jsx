@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from './adminApi.js';
 import { withId } from '../lib/api.js';
 import InlineInput from './InlineInput.jsx';
+import EmojiButton from '../lib/EmojiButton.jsx';
 
 const NO_TOPIC = 'כללי';
 const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
@@ -577,6 +578,7 @@ function PasteBox({ topic, onAdd, onCancel }) {
 // שאלה אחת: נוסח, סוג, תשובות, העברה לנושא
 function AdminQuestion({ q, topics, current, dup, flash, dragging, dropping, dragProps, dropProps, onChange, onRemove, onMove }) {
   const [draft, setDraft] = useState('');
+  const textRef = useRef(null);
   const addAnswer = () => {
     const v = draft.trim();
     if (!v) return;
@@ -592,7 +594,10 @@ function AdminQuestion({ q, topics, current, dup, flash, dragging, dropping, dra
         ⋮⋮
       </div>
       <div className="aq-body">
-        <input className="aq-text" type="text" value={q.text} placeholder="נוסח השאלה…" autoFocus={q.isNew} onChange={(e) => onChange({ text: e.target.value, isNew: false })} />
+        <div className="su-q-textrow">
+          <input ref={textRef} className="aq-text" type="text" value={q.text} placeholder="נוסח השאלה…" autoFocus={q.isNew} onChange={(e) => onChange({ text: e.target.value, isNew: false })} />
+          <EmojiButton inputRef={textRef} value={q.text} onChange={(text) => onChange({ text, isNew: false })} />
+        </div>
         {dup && <div className="aq-dup">⚠️ {dup}</div>}
         <div className="aq-row">
           <div className="su-seg aq-type">

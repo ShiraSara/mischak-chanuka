@@ -238,3 +238,31 @@
 .topic-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: -4px; background: #fff; z-index: 2; padding: 4px 0; }
 .topic-head b { font-weight: 900; font-size: 1.1rem; }
 .su-topic-input { width: 130px !important; padding: 4px 10px !important; font-size: .85rem !important; border-width: 2px !important; border-style: dashed !important; }
+
+/* בחירת גרסה, אישור בתוך הדף, סל מחזור, גרירה, אימוג'י */
+.su-label { font-weight: 900; font-size: 1.05rem; margin: 0 0 8px; }
+.su-ask { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 700; background: color-mix(in srgb, var(--danger) 9%, #fff); border: 2px dashed var(--danger); border-radius: 12px; padding: 8px 12px; margin: -6px 0 16px; }
+.su-ask.inline { margin: 0; padding: 4px 10px; }
+.su-random { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: 8px; }
+.su-random input { width: 64px !important; padding: 5px 8px !important; }
+.btn.small.on { background: var(--ink); color: #fff; }
+.su-trash { border: 2.5px dashed var(--ink); border-radius: 16px; padding: 10px 14px; margin-bottom: 14px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+.su-trash-head { display: flex; align-items: center; gap: 8px; }
+.su-trash-row { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 6px 0; border-top: 1.5px dashed var(--line); }
+.su-trash-row span { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.su-q-side { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.su-grip { cursor: grab; color: var(--muted); font-size: .9rem; letter-spacing: -2px; padding: 4px 6px; border-radius: 8px; user-select: none; }
+.su-grip:hover { background: var(--line); color: var(--ink); }
+.su-q.dragging { opacity: .4; }
+.su-q.drop { border-style: dashed; outline: 3px solid var(--c1); outline-offset: 2px; }
+.topic-head.drop { outline: 3px dashed var(--c1); outline-offset: 2px; border-radius: 10px; }
+.su-q-textrow { display: flex; align-items: center; gap: 6px; }
+.emoji-btn { position: relative; flex: none; }
+.emoji-btn > button { border: 2px solid transparent; background: transparent; font-size: 1.25rem; border-radius: 10px; cursor: pointer; padding: 2px 6px; opacity: .55; }
+.emoji-btn > button:hover { opacity: 1; border-color: var(--line); background: #fff; }
+.emoji-pop {
+  position: absolute; top: 100%; inset-inline-end: 0; z-index: 30; display: grid; grid-template-columns: repeat(8, 36px); gap: 2px;
+  background: #fff; border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 4px 4px 0 var(--ink); padding: 8px;
+}
+.emoji-pop button { border: 0; background: transparent; font-size: 1.3rem; cursor: pointer; border-radius: 8px; padding: 3px 0; }
+.emoji-pop button:hover { background: color-mix(in srgb, var(--c2) 45%, #fff); }

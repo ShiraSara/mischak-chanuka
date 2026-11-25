@@ -6,6 +6,7 @@ import QuestionView from './QuestionView.jsx';
 import ResultsView from './ResultsView.jsx';
 import SummaryView from './SummaryView.jsx';
 import Controls from './Controls.jsx';
+import FitBox from './FitBox.jsx';
 import BoardView from './BoardView.jsx';
 import SettingsDrawer from './SettingsDrawer.jsx';
 import { useGameAudio } from './useGameAudio.js';
@@ -37,6 +38,13 @@ export default function Game({ gameId, me, onExit }) {
     setControlsShown(true);
     clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setControlsShown(false), ms);
+  };
+  const [error, setError] = useState('');
+  const errTimer = useRef(null);
+  const showError = (msg) => {
+    setError(msg);
+    clearTimeout(errTimer.current);
+    errTimer.current = setTimeout(() => setError(''), 5000);
   };
   const drawerRef = useRef(false);
   drawerRef.current = drawer;
@@ -129,12 +137,12 @@ export default function Game({ gameId, me, onExit }) {
   if (state && sceneOf(state) === shownScene) snapRef.current = state;
   const view = shownScene && shownScene !== 'lobby' ? snapRef.current : null;
   const transitioning = !!state && sceneOf(state) !== shownScene; // הווילון באמצע מעבר לסצנה הבאה
+  const allConnected = !!state?.players.length && state.players.every((p) => p.connected);
   const audio = useGameAudio({ view, upcoming: state, shownScene, curtainClosed: curtain.closed, transitioning, clockOffset });
 
   const act = async (action) => {
     if (soundOn) playSound('unlock'); // הדפדפן מאפשר קול רק אחרי לחיצה
     if (action === 'setup') {
-      if (state.game.phase !== 'ended' && !confirm('לחזור למסך ההכנה? המשחק הנוכחי יישאר פתוח עד שתיצרי משחק חדש.')) return;
       return onExit(state.game.phase === 'ended');
     }
     if (action === 'sound') {
@@ -152,13 +160,11 @@ export default function Game({ gameId, me, onExit }) {
     }
     if (action === 'fullscreen') return document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
     if (action === 'sim') return window.open(`/sim.html?game=${gameId}`, '_blank');
-    if (action === 'end' && !confirm('לסיים את המשחק?')) return;
-    if (action === 'restart_question' && !confirm('למחוק את כל ההצבעות לשאלה הזו?')) return;
     try {
       setState(await api(`/api/games/${gameId}/action`, { method: 'POST', body: { action } }));
       setTimeout(() => pollRef.current?.(), 300);
     } catch (er) {
-      alert(er.message);
+      showError(er.message);
     }
   };
   const actRef = useRef(act);
@@ -200,23 +206,37 @@ export default function Game({ gameId, me, onExit }) {
     >
       <div className={`stage ${curtain.closed ? 'closed' : ''}`}>
         <div className="game-main enter" key={shownScene}>
-          {content}
+          {content && <FitBox>{content}</FitBox>}
         </div>
+        {/* חיווי התקדמות בצד המסך: שאלה N מתוך M */}
+        {view && ['question', 'results', 'board'].includes(view.game.phase) && (
+          <div className="side-progress" aria-label={`שאלה ${view.game.qIndex + 1} מתוך ${view.game.total}`}>
+            <span className="k">שאלה</span>
+            <b>{view.game.qIndex + 1}</b>
+            <span className="k">מתוך {view.game.total}</span>
+            <span className="bar">
+              <i style={{ height: `${((view.game.qIndex + 1) / view.game.total) * 100}%` }} />
+            </span>
+          </div>
+        )}
         <div className="curtain left" />
         <div className="curtain right" />
         <div className="valance" />
         <div className="curtain-label">
-          <CurtainLabel label={curtain.label} state={state} />
+          <CurtainLabel label={curtain.label} state={state} onStart={state?.game.phase === 'lobby' ? () => act('start') : null} />
         </div>
-        {/* מספר הטלפון: בפתיחה – בתחתית עם "התקשרו להצטרפות"; בזמן המשחק – קטן בפינה */}
-        <div className={`stage-info ${shownScene === 'lobby' || !shownScene ? 'lobby' : 'corner'} ${controlsShown ? 'raised' : ''}`}>
-          <span className="phone-box">
-            <span className="ph-ic">☎</span>
-            <span className="ph-lbl">{shownScene === 'lobby' || !shownScene ? 'התקשרו להצטרפות' : 'להצבעה'}</span>
-            {me?.phoneInfo ? <b className="ph-num">{me.phoneInfo}</b> : <span>למספר המשחק</span>}
-          </span>
-        </div>
+        {/* מספר הטלפון להתחברות: בפתיחה – בתחתית; בזמן המשחק – קטן בפינה. כשכולן מחוברות – נעלם (וחוזר אם מישהי התנתקה) */}
+        {!allConnected && (
+          <div className={`stage-info ${shownScene === 'lobby' || !shownScene ? 'lobby' : 'corner'} ${controlsShown ? 'raised' : ''}`}>
+            <span className="phone-box">
+              <span className="ph-ic">☎</span>
+              <span className="ph-lbl">התחברות</span>
+              {me?.phoneInfo ? <b className="ph-num">{me.phoneInfo}</b> : <span>למספר המשחק</span>}
+            </span>
+          </div>
+        )}
       </div>
+      {error && <div className="game-toast">⚠️ {error}</div>}
       {drawer && state && (
         <SettingsDrawer
           game={state.game}
@@ -227,7 +247,7 @@ export default function Game({ gameId, me, onExit }) {
             try {
               setState(await api(`/api/games/${gameId}/action`, { method: 'POST', body: { action: 'settings', settings: patch } }));
             } catch (er) {
-              alert(er.message);
+              showError(er.message);
             }
           }}
         />

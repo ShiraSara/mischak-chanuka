@@ -26,7 +26,7 @@ export default function Login({ onLogin }) {
   return (
     <section className="center-page">
       <div className="login-card">
-        <span className="sticker">משחק קליקרים לחבורות</span>
+        <span className="sticker">משחק קליקרים לקבוצות</span>
         <h1 className="brand" style={{ marginTop: 18 }}>{BRAND}</h1>
         <Wave />
         <p className="sub">הקישי את הקוד שקיבלת כדי להתחיל</p>

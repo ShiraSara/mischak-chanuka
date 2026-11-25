@@ -106,7 +106,9 @@ npx wrangler d1 execute seker-game-db --remote --file migrations/00X.sql -y
 ```
 type=api
 api_link=https://seker-game.seker-game.workers.dev/yemot
+api_hangup_send=yes
 ```
+- `api_hangup_send=yes` – ימות המשיח מודיעה לשרת כשמשתתפת ניתקה, וכיתוב "התחברות" חוזר למסך מיד. בלי השורה הזו המערכת מזהה ניתוק אחרי כדקה.
 - **אבטחה:** אם הוגדר `YEMOT_KEY`, מוסיפים לקישור `?key=הסוד`.
 - **לפני משחק אמיתי:** לבדוק עם 2–3 טלפונים, ולוודא שהחבילה מאפשרת 15 שיחות במקביל.
 
