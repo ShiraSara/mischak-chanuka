@@ -2,55 +2,55 @@
 
 /* ================= ערכות צבעים ================= */
 :root,
-[data-theme='pink'] {
-  --bg: #fff0f5;
-  --ink: #2a0f3d;
-  --c1: #e0187a; /* ראשי */
-  --c2: #ffd43b; /* משני */
-  --c3: #7c3aed; /* הדגשה */
-  --c4: #ff9ccb; /* רך */
-  --on-c1: #fff;
-  --on-c3: #fff;
+[data-theme='powder'] {
+  --bg: #faece6;
+  --ink: #2E425B;
+  --c1: #D6938C; /* ראשי */
+  --c2: #F0C9B7; /* משני */
+  --c3: #726B80; /* הדגשה */
+  --c4: #9994A4; /* רך */
+  --on-c1: #2E425B;
+  --on-c3: #ffffff;
 }
-[data-theme='blue'] {
-  --bg: #eef5ff;
-  --ink: #0f1d3a;
-  --c1: #1f6fff;
-  --c2: #2ee6c9;
-  --c3: #ffb020;
-  --c4: #9cc6ff;
-  --on-c1: #fff;
-  --on-c3: #0f1d3a;
+[data-theme='cherry'] {
+  --bg: #F9F9F1;
+  --ink: #23222B;
+  --c1: #DF2F50;
+  --c2: #E0DB2D;
+  --c3: #98C3D2;
+  --c4: #E2E3E2;
+  --on-c1: #ffffff;
+  --on-c3: #23222B;
 }
-[data-theme='green'] {
-  --bg: #f0fae8;
-  --ink: #12301b;
-  --c1: #16a34a;
-  --c2: #c6f432;
-  --c3: #ff7a59;
-  --c4: #9be3b5;
-  --on-c1: #fff;
-  --on-c3: #12301b;
+[data-theme='orchid'] {
+  --bg: #ededf7;
+  --ink: #181B3F;
+  --c1: #CE63B4;
+  --c2: #6BF5FA;
+  --c3: #61579F;
+  --c4: #8489CC;
+  --on-c1: #181B3F;
+  --on-c3: #ffffff;
 }
-[data-theme='orange'] {
-  --bg: #fff3e8;
-  --ink: #3a1408;
-  --c1: #ff5a1f;
-  --c2: #ffc93c;
-  --c3: #e0245e;
-  --c4: #ffb08a;
-  --on-c1: #fff;
-  --on-c3: #fff;
+[data-theme='honey'] {
+  --bg: #f5ebeb;
+  --ink: #4B4150;
+  --c1: #5F9EBB;
+  --c2: #E3BA54;
+  --c3: #6E616D;
+  --c4: #C7A3AE;
+  --on-c1: #4B4150;
+  --on-c3: #ffffff;
 }
-[data-theme='purple'] {
-  --bg: #f5efff;
-  --ink: #1e0b33;
-  --c1: #7c3aed;
-  --c2: #f6c453;
-  --c3: #e0187a;
-  --c4: #c4a7ff;
-  --on-c1: #fff;
-  --on-c3: #fff;
+[data-theme='vermilion'] {
+  --bg: #f2eeee;
+  --ink: #0B1E1B;
+  --c1: #DB403D;
+  --c2: #13CDD0;
+  --c3: #363653;
+  --c4: #E3D9DA;
+  --on-c1: #ffffff;
+  --on-c3: #ffffff;
 }
 
 :root {
@@ -313,7 +313,7 @@ input.ltr { direction: ltr; text-align: right; }
 .timer-ring.done .num { font-size: 2.6rem; animation: shake .5s 2; }
 .timer-ring.paused .prog { stroke: color-mix(in srgb, #fff 45%, transparent); }
 .timer-ring.paused .num { opacity: .55; }
-.timer-ring .paused-tag { position: absolute; bottom: -14px; inset-inline: -20px; text-align: center; font-weight: 900; font-size: .95rem; color: #fff; background: var(--c1); border-radius: 99px; padding: 2px 8px; animation: pulse 1.6s infinite; }
+.timer-ring .paused-tag { position: absolute; bottom: -14px; inset-inline: -20px; text-align: center; font-weight: 900; font-size: .95rem; color: var(--on-c1); background: var(--c1); border-radius: 99px; padding: 2px 8px; animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.22); } }
 @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
 

@@ -3,18 +3,18 @@ export const BRAND = 'Crazy girls';
 
 // כל ערכה: רקע בהיר, צבע "דיו" כהה (מסגרות וטקסט), וארבעה צבעים עזים
 export const THEMES = [
-  { id: 'pink', name: 'ורוד-צהוב', swatch: ['#e0187a', '#ffd43b', '#7c3aed'] },
-  { id: 'blue', name: 'כחול-טורקיז', swatch: ['#1f6fff', '#2ee6c9', '#ffb020'] },
-  { id: 'green', name: 'ירוק-ליים', swatch: ['#16a34a', '#c6f432', '#ff7a59'] },
-  { id: 'orange', name: 'כתום-אדום', swatch: ['#ff5a1f', '#ffc93c', '#e0245e'] },
-  { id: 'purple', name: 'סגול-זהב', swatch: ['#7c3aed', '#f6c453', '#e0187a'] },
+  { id: 'powder', name: 'פודרה ושקיעה', swatch: ['#D6938C', '#F0C9B7', '#726B80'] },
+  { id: 'cherry', name: 'דובדבן וזהב', swatch: ['#DF2F50', '#E0DB2D', '#98C3D2'] },
+  { id: 'orchid', name: 'סחלב וניאון', swatch: ['#CE63B4', '#6BF5FA', '#61579F'] },
+  { id: 'honey', name: 'דבש ולבנדר', swatch: ['#5F9EBB', '#E3BA54', '#6E616D'] },
+  { id: 'vermilion', name: 'ורמיליון וטורקיז', swatch: ['#DB403D', '#13CDD0', '#363653'] },
 ];
 
 const KEY = 'seker_theme';
 
 export function getTheme() {
   const t = localStorage.getItem(KEY);
-  return THEMES.some((x) => x.id === t) ? t : 'pink';
+  return THEMES.some((x) => x.id === t) ? t : THEMES[0].id;
 }
 
 export function applyTheme(id) {
