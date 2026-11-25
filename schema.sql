@@ -85,3 +85,10 @@ CREATE TABLE IF NOT EXISTS rounds (
   players INTEGER,             -- כמה משתתפות היו כשהשאלה התחילה
   PRIMARY KEY (game_id, q_index)
 );
+-- סל מחזור לשאלות שנמחקו ממאגר (נשמרות 30 יום)
+CREATE TABLE IF NOT EXISTS bank_trash (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bank_id INTEGER,
+  q TEXT,              -- JSON של השאלה (נוסח, סוג, תשובות, נושא, זמנים)
+  deleted_at INTEGER
+);

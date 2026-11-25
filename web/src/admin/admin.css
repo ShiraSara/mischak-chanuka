@@ -151,3 +151,4 @@
 .mu-row input { flex: 1; min-width: 160px; font-weight: 800; }
 .mu-row audio { height: 36px; max-width: 320px; }
 .mu-note { font-size: .88rem; margin: 14px 0 0; }
+.bp-trash { margin-bottom: 16px; } .bp-trash .su-trash-row span:first-child { text-decoration: none; color: var(--text); }

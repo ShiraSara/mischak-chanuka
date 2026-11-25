@@ -30,6 +30,9 @@ export default function BankPanel({ pw }) {
   const [pasting, setPasting] = useState(false);
   const [note, setNote] = useState('');
   const [undo, setUndo] = useState(null);
+  const [trash, setTrash] = useState([]); // סל המחזור של המאגר הפתוח
+  const [showTrash, setShowTrash] = useState(false);
+  const [askEmpty, setAskEmpty] = useState(false);
   const [flash, setFlash] = useState(null);
   const [drag, setDrag] = useState(null); // { kind: 'q' | 'topic', id }
   const [dropOn, setDropOn] = useState(null);
@@ -124,10 +127,46 @@ export default function BankPanel({ pw }) {
     setQs(insertAtTopicEnd(qs, [q], current));
   };
   const update = (id, patch) => setQs(qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
-  const remove = (id) => {
+  // סל מחזור: כל שאלה שנמחקת נשמרת בשרת 30 יום
+  const loadTrash = useCallback(
+    (bankId) => adminApi(`/api/admin/banks/${bankId}/trash`, pw).then((d) => setTrash(d.trash)),
+    [pw]
+  );
+  useEffect(() => {
+    if (sel != null) loadTrash(sel).catch(() => setTrash([]));
+  }, [sel, loadTrash]);
+  const toTrash = async (bankId, list) => {
+    const real = list.filter((q) => q.text.trim());
+    if (!real.length) return [];
+    const r = await adminApi(`/api/admin/banks/${bankId}/trash`, pw, 'POST', { questions: real });
+    loadTrash(bankId);
+    return r.ids;
+  };
+  const remove = async (id) => {
     const i = qs.findIndex((q) => q.id === id);
-    setUndo({ bankId: sel, q: qs[i], i });
-    setQs(qs.filter((q) => q.id !== id));
+    const q = qs[i];
+    setQs(qs.filter((x) => x.id !== id));
+    const bankId = sel;
+    const ids = await toTrash(bankId, [q]);
+    setUndo({ bankId, q, i, trashId: ids[0] });
+  };
+  const restore = async (item) => {
+    const q = withId(item.q);
+    const t = topicOf(q);
+    const list = allRef.current[sel] || [];
+    setQs(insertAtTopicEnd(list, [q], t));
+    await adminApi(`/api/admin/trash/${item.id}`, pw, 'DELETE');
+    setTrash((x) => x.filter((y) => y.id !== item.id));
+    setNote(`↩ השאלה שוחזרה לנושא "${t}"`);
+  };
+  const forget = async (item) => {
+    await adminApi(`/api/admin/trash/${item.id}`, pw, 'DELETE');
+    setTrash((x) => x.filter((y) => y.id !== item.id));
+  };
+  const emptyTrash = async () => {
+    setAskEmpty(false);
+    await adminApi(`/api/admin/banks/${sel}/trash`, pw, 'DELETE');
+    setTrash([]);
   };
   useEffect(() => {
     if (!undo) return;
@@ -138,6 +177,7 @@ export default function BankPanel({ pw }) {
     const list = [...(allRef.current[undo.bankId] || [])];
     list.splice(undo.i, 0, undo.q);
     setQs(list, undo.bankId);
+    if (undo.trashId) forget({ id: undo.trashId });
     setUndo(null);
   };
   const moveTo = (id, t) => {
@@ -162,8 +202,10 @@ export default function BankPanel({ pw }) {
   const deleteTopic = (t) => {
     setConfirm(null);
     setExtraTopics((x) => ({ ...x, [sel]: (x[sel] || []).filter((e) => e !== t) }));
-    if (qs.some((q) => topicOf(q) === t)) setQs(qs.filter((q) => topicOf(q) !== t));
-    setNote(`הנושא "${t}" נמחק`);
+    const gone = qs.filter((q) => topicOf(q) === t);
+    if (gone.length) setQs(qs.filter((q) => topicOf(q) !== t));
+    toTrash(sel, gone);
+    setNote(gone.length ? `הנושא "${t}" נמחק – ${gone.length} השאלות שבו בסל המחזור` : `הנושא "${t}" נמחק`);
   };
   const reorderTopics = (from, to) => {
     if (from === to) return;
@@ -254,6 +296,7 @@ export default function BankPanel({ pw }) {
     setConfirm(null);
     setRenaming(null);
     setPasting(false);
+    setShowTrash(false);
   };
   const newBank = async (name) => {
     setAdding(null);
@@ -377,6 +420,9 @@ export default function BankPanel({ pw }) {
                   <button className="btn small" onClick={duplicateBank}>
                     📑 שכפול
                   </button>
+                  <button className={`btn small ${showTrash ? 'on' : ''}`} onClick={() => setShowTrash(!showTrash)}>
+                    🗑️ סל מחזור{trash.length ? ` (${trash.length})` : ''}
+                  </button>
                   {confirm?.kind === 'bank' ? (
                     <span className="bp-confirm">
                       למחוק את המאגר וכל השאלות שבו?
@@ -394,6 +440,48 @@ export default function BankPanel({ pw }) {
                   )}
                 </div>
               </div>
+
+              {showTrash && (
+                <div className="su-trash bp-trash">
+                  <div className="su-trash-head">
+                    <b>🗑️ סל מחזור – {bank.name}</b>
+                    <span className="muted">שאלות שנמחקו נשמרות כאן 30 יום</span>
+                    <span className="grow" />
+                    {trash.length > 0 &&
+                      (askEmpty ? (
+                        <span className="bp-confirm">
+                          למחוק הכל לצמיתות?
+                          <button className="btn small danger" onClick={emptyTrash}>
+                            כן
+                          </button>
+                          <button className="btn small ghost" onClick={() => setAskEmpty(false)}>
+                            לא
+                          </button>
+                        </span>
+                      ) : (
+                        <button className="btn small ghost" onClick={() => setAskEmpty(true)}>
+                          ריקון הסל
+                        </button>
+                      ))}
+                  </div>
+                  {trash.map((t) => (
+                    <div className="su-trash-row" key={t.id}>
+                      <span>
+                        {t.q.text} <small className="muted">· 📂 {topicOf(t.q)} · {new Date(t.deletedAt).toLocaleDateString('he-IL')}</small>
+                      </span>
+                      <span className="row">
+                        <button className="btn small" onClick={() => restore(t)}>
+                          ↩ שחזור
+                        </button>
+                        <button className="btn small ghost" title="מחיקה לצמיתות" onClick={() => forget(t)}>
+                          ✕
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                  {!trash.length && <div className="muted">הסל ריק 🎉</div>}
+                </div>
+              )}
 
               <div className="bp-layout">
                 {/* נושאים */}

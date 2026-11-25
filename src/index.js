@@ -945,6 +945,39 @@ async function adminRoutes(req, env, path, method) {
       return json({ id: r.id });
     }
   }
+  // סל מחזור של מאגר: שאלות שנמחקו נשמרות 30 יום
+  const tm = path.match(/^\/api\/admin\/banks\/(\d+)\/trash$/);
+  if (tm) {
+    const bankId = Number(tm[1]);
+    if (method === 'GET') {
+      await env.DB.prepare('DELETE FROM bank_trash WHERE deleted_at < ?').bind(now() - 30 * 86400000).run();
+      const { results } = await env.DB.prepare('SELECT id, q, deleted_at FROM bank_trash WHERE bank_id = ? ORDER BY deleted_at DESC, id DESC')
+        .bind(bankId)
+        .all();
+      return json({ trash: results.map((r) => ({ id: r.id, deletedAt: r.deleted_at, q: JSON.parse(r.q) })) });
+    }
+    if (method === 'POST') {
+      const list = cleanQuestions((await body(req)).questions || []);
+      const ids = [];
+      for (const q of list) {
+        const r = await env.DB.prepare('INSERT INTO bank_trash (bank_id, q, deleted_at) VALUES (?, ?, ?) RETURNING id')
+          .bind(bankId, JSON.stringify(q), now())
+          .first();
+        ids.push(r.id);
+      }
+      return json({ ids });
+    }
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM bank_trash WHERE bank_id = ?').bind(bankId).run();
+      return json({ ok: true });
+    }
+  }
+  const ti = path.match(/^\/api\/admin\/trash\/(\d+)$/);
+  if (ti && method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM bank_trash WHERE id = ?').bind(Number(ti[1])).run();
+    return json({ ok: true });
+  }
+
   const bm = path.match(/^\/api\/admin\/banks\/(\d+)(\/questions)?$/);
   if (bm) {
     const id = Number(bm[1]);
