@@ -4,6 +4,7 @@ import { countForMinutes, estimateMinutes, fmtMinutes } from '../lib/gameLength.
 import ImportDialog from './ImportDialog.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
 import ListPaste from '../lib/ListPaste.jsx';
+import TimerSelect from '../lib/TimerSelect.jsx';
 import { FEATURES } from '../lib/features.js';
 
 const NO_TOPIC = 'כללי';
@@ -430,14 +431,14 @@ function QuestionRow({ q, settings, canDrag, dragging, dropping, onDragStart, on
             ⚙️
           </button>
         </div>
-        {(q.timerSec != null || q.resultsSec != null) && !times && (
+        {q.resultsSec != null && !times && (
           <div className="su-times-badge" onClick={() => setTimes(true)}>
-            {q.timerSec != null && <span>⏱ {q.timerSec ? `${q.timerSec} שנ׳` : 'בלי טיימר'}</span>}
-            {q.resultsSec != null && <span>📊 תוצאות {q.resultsSec} שנ׳</span>}
+            <span>📊 תוצאות {q.resultsSec} שנ׳</span>
           </div>
         )}
         {times && <TimesPanel title="⏱ זמנים לשאלה הזו" q={q} settings={settings} onChange={onChange} onClose={() => setTimes(false)} />}
         <div className="su-q-meta">
+          <TimerSelect value={q.timerSec} def={Number(settings.timerSec) || 0} onChange={(timerSec) => onChange({ timerSec })} />
           <button className={`su-type ${q.type === 'options' ? 'opt' : ''}`} onClick={toggleType} title="לחצי להחלפה">
             {q.type === 'names' ? '👥 התשובות: שמות המשתתפות' : '🔘 התשובות: אפשרויות קבועות'}
           </button>

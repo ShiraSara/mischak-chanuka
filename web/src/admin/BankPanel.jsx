@@ -4,6 +4,7 @@ import { withId } from '../lib/api.js';
 import InlineInput from './InlineInput.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
 import ListPaste from '../lib/ListPaste.jsx';
+import TimerSelect from '../lib/TimerSelect.jsx';
 
 const NO_TOPIC = 'כללי';
 const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
@@ -574,6 +575,7 @@ function AdminQuestion({ q, topics, current, dup, flash, dragging, dropping, dra
               🔘 תשובות קבועות
             </button>
           </div>
+          <TimerSelect value={q.timerSec} onChange={(timerSec) => onChange({ timerSec })} />
           {topics.length > 1 && (
             <select className="aq-move-to" value="" onChange={(e) => e.target.value && onMove(e.target.value)} title="העברה לנושא אחר">
               <option value="">📂 העברה לנושא…</option>

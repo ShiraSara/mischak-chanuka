@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS bank (      -- השאלות במאגרים
   options TEXT,                         -- JSON array: תשובות קבועות / תשובות נוספות לשמות
   sort INTEGER DEFAULT 0,
   bank_id INTEGER,
-  topic TEXT
+  topic TEXT,
+  timer_sec INTEGER,                    -- טיימר לשאלה (NULL = לפי הגדרות המשחק)
+  results_sec INTEGER                   -- זמן תוצאות לשאלה (NULL = לפי הגדרות המשחק)
 );
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,

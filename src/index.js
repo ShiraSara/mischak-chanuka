@@ -98,7 +98,14 @@ async function listBanks(env, { all = false } = {}) {
 
 async function getBankQuestions(env, bankId) {
   const { results } = await env.DB.prepare('SELECT * FROM bank WHERE bank_id = ? ORDER BY sort, id').bind(bankId).all();
-  return results.map((r) => ({ text: r.text, type: r.type, options: JSON.parse(r.options || '[]'), topic: r.topic || '' }));
+  return results.map((r) => ({
+    text: r.text,
+    type: r.type,
+    options: JSON.parse(r.options || '[]'),
+    topic: r.topic || '',
+    ...(r.timer_sec != null ? { timerSec: r.timer_sec } : {}),
+    ...(r.results_sec != null ? { resultsSec: r.results_sec } : {}),
+  }));
 }
 
 async function setBankQuestions(env, bankId, list) {
@@ -106,13 +113,15 @@ async function setBankQuestions(env, bankId, list) {
   const stmts = [env.DB.prepare('DELETE FROM bank WHERE bank_id = ?').bind(bankId)];
   qs.forEach((q, i) =>
     stmts.push(
-      env.DB.prepare('INSERT INTO bank (bank_id, text, type, options, topic, sort) VALUES (?, ?, ?, ?, ?, ?)').bind(
+      env.DB.prepare('INSERT INTO bank (bank_id, text, type, options, topic, sort, timer_sec, results_sec) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(
         bankId,
         q.text,
         q.type,
         JSON.stringify(q.options),
         q.topic,
-        i
+        i,
+        q.timerSec ?? null,
+        q.resultsSec ?? null
       )
     )
   );

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import AudioSettings from '../pages/AudioSettings.jsx';
 import ThemePicker from '../lib/ThemePicker.jsx';
 
-const TIMERS = [0, 15, 20, 30, 45, 60, 90];
+const TIMERS = [0, 10, 15, 20, 30, 45, 60, 90];
 const HOLDS = [5, 8, 12, 20];
 const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 

@@ -295,3 +295,5 @@
 .su-times-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .su-times-row > span { font-weight: 700; font-size: .9rem; min-width: 110px; }
 .su-times .su-timer button { padding: 4px 9px; min-width: 38px; font-size: .85rem; }
+.q-timer { font: inherit; font-size: .85rem; font-weight: 700; padding: 4px 8px; border: 2px solid var(--edge); border-radius: 10px; background: var(--surface); color: var(--text); cursor: pointer; }
+.q-timer.set { background: color-mix(in srgb, var(--c2) 45%, var(--surface)); border-color: var(--c1); }

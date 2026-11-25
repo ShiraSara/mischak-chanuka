@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = { timerSec: 20, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5, title: '', profiles: true };
+export const DEFAULT_SETTINGS = { timerSec: 10, shuffle: false, allowSelfVote: true, autoReveal: false, showVoters: true, boardEvery: 8, autoPlay: true, resultsSec: 5, title: '', profiles: true };
 
 const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 const HOLDS = [5, 8, 12, 20];
@@ -6,7 +6,7 @@ const HOLDS = [5, 8, 12, 20];
 import ThemePicker from '../lib/ThemePicker.jsx';
 import AudioSettings from './AudioSettings.jsx';
 
-const TIMERS = [0, 15, 20, 30, 45, 60, 90];
+const TIMERS = [0, 10, 15, 20, 30, 45, 60, 90];
 
 function Switch({ checked, onChange }) {
   return (
