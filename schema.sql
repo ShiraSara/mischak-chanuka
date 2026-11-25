@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS codes (
   questions TEXT,              -- JSON: מאגר השאלות האישי של הלקוחה (NULL = מאגר ברירת המחדל)
   ai_used INTEGER DEFAULT 0,   -- כמה קריאות תמונה נוצלו החודש
   ai_month TEXT,               -- החודש של המונה (YYYY-MM)
-  ai_limit INTEGER             -- מגבלה חודשית (NULL = ברירת המחדל)
+  ai_limit INTEGER,            -- מגבלה חודשית (NULL = ברירת המחדל)
+  max_players INTEGER          -- מגבלת משתתפות במשחק (NULL = 15)
 );
 CREATE TABLE IF NOT EXISTS banks (     -- מאגרי שאלות (סולידי / נועז / ...)
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,5 +80,6 @@ CREATE TABLE IF NOT EXISTS rounds (
   game_id INTEGER NOT NULL,
   q_index INTEGER NOT NULL,
   started_at INTEGER NOT NULL,
+  players INTEGER,             -- כמה משתתפות היו כשהשאלה התחילה
   PRIMARY KEY (game_id, q_index)
 );

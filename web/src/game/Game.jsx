@@ -219,6 +219,17 @@ export default function Game({ gameId, me, onExit }) {
         <div className="game-main enter" key={shownScene}>
           {content && <FitBox>{content}</FitBox>}
         </div>
+        {/* עצירה / המשך – כפתור קטן בצד, זמין תמיד במהלך המשחק */}
+        {state && !['lobby', 'ended'].includes(state.game.phase) && (
+          <button
+            className={`side-pause ${state.game.pausedAt ? 'paused' : ''}`}
+            title={state.game.pausedAt ? 'המשך המשחק' : 'עצירת המשחק'}
+            onClick={() => act(state.game.pausedAt ? 'resume' : 'pause')}
+          >
+            {state.game.pausedAt ? '▶' : '⏸'}
+          </button>
+        )}
+        {state?.game.pausedAt && state.game.phase !== 'question' && <div className="paused-banner">⏸ המשחק בהפסקה</div>}
         {/* חיווי התקדמות בצד המסך: שאלה N מתוך M */}
         {view && ['question', 'results', 'board'].includes(view.game.phase) && (
           <div className="side-progress" aria-label={`שאלה ${view.game.qIndex + 1} מתוך ${view.game.total}`}>
@@ -251,6 +262,16 @@ export default function Game({ gameId, me, onExit }) {
       {drawer && state && (
         <SettingsDrawer
           game={state.game}
+          players={state.players}
+          onPlayer={async (action, payload) => {
+            try {
+              setState(await api(`/api/games/${gameId}/action`, { method: 'POST', body: { action, ...payload } }));
+              return true;
+            } catch (er) {
+              showError(er.message);
+              return false;
+            }
+          }}
           soundOn={soundOn}
           onToggleSound={() => act('sound')}
           onClose={() => setDrawer(false)}

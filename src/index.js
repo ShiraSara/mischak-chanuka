@@ -4,7 +4,9 @@ import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
 import { makeProfiles } from './profiles.js';
 
-const MAX_PLAYERS = 15;
+const MAX_PLAYERS = 15; // ברירת המחדל למספר משתתפות במשחק (ולתשובות קבועות בשאלה)
+const HARD_MAX_PLAYERS = 50; // הכי הרבה שאפשר להגדיר לקוד
+const maxPlayersOf = (c) => Math.min(HARD_MAX_PLAYERS, Math.max(2, Number(c?.max_players) || MAX_PLAYERS));
 // טלפון שמחכה להקשה פונה לשרת לפחות כל READ_SEC שניות; בלי פנייה דקה – כנראה ניתק
 const CONNECTED_MS = 60 * 1000;
 const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
@@ -154,8 +156,9 @@ async function loadPlayers(env, gameId) {
   return results;
 }
 
-function optionsFor(q, players) {
+function optionsFor(q, players, upto) {
   if (!q) return [];
+  if (upto) players = players.filter((p) => p.num <= upto); // משתתפת שהצטרפה באמצע – רק מהשאלה הבאה
   if (q.type === 'names') {
     // השמות, ואחריהם התשובות הנוספות (ממוספרות אחרי המשתתפת האחרונה)
     const last = players.reduce((m, p) => Math.max(m, p.num), 0);
@@ -206,7 +209,7 @@ async function gameState(env, g) {
     }
   }
   // מעבר אוטומטי: אחרי כמה שניות של תוצאות (או טבלת מובילות) – לשאלה הבאה
-  if (auto && (g.phase === 'results' || g.phase === 'board')) {
+  if (auto && !g.paused_at && (g.phase === 'results' || g.phase === 'board')) {
     const holdMs = autoHoldMs(g);
     if (now() - g.updated_at > holdMs && (await claimPhase(env, g))) {
       await gameAction(env, g, 'next');
@@ -216,7 +219,8 @@ async function gameState(env, g) {
 
   // השאלה הנוכחית – אחרי מעברים אוטומטיים אפשריים
   const q = g.questions[g.q_index];
-  const opts = optionsFor(q, players);
+  const upto = await roundPlayers(env, g.id);
+  const opts = optionsFor(q, players, upto.get(g.q_index));
 
   const voted = new Set(votes.map((v) => v.num));
   const state = {
@@ -228,15 +232,17 @@ async function gameState(env, g) {
       qIndex: g.q_index,
       total: g.questions.length,
       qStartedAt: g.q_started_at,
-      pausedAt: g.phase === 'question' ? g.paused_at || null : null,
+      pausedAt: g.paused_at || null,
       phaseAt: g.updated_at,
-      autoAt: g.settings.autoPlay && (g.phase === 'results' || g.phase === 'board') ? g.updated_at + autoHoldMs(g) : null,
+      autoAt: g.settings.autoPlay && !g.paused_at && (g.phase === 'results' || g.phase === 'board') ? g.updated_at + autoHoldMs(g) : null,
+      maxPlayers: maxPlayersOf(await env.DB.prepare('SELECT max_players FROM codes WHERE code = ?').bind(g.code).first()),
       settings: g.settings,
     },
     players: players.map((p) => ({
       num: p.num,
       name: p.name,
       hasPhone: !!p.phone,
+      phone: p.phone || '',
       connected: !!p.last_seen && now() - p.last_seen < CONNECTED_MS,
       voted: voted.has(p.num),
     })),
@@ -262,7 +268,7 @@ async function gameState(env, g) {
       .bind(g.id)
       .all();
     state.summary = g.questions.map((qq, i) => {
-      const t = tally(optionsFor(qq, players), all.filter((v) => v.q_index === i));
+      const t = tally(optionsFor(qq, players, upto.get(i)), all.filter((v) => v.q_index === i));
       const top = t[0]?.count || 0;
       return {
         text: qq.text,
@@ -285,15 +291,16 @@ async function computeScores(env, g, players, uptoIndex) {
   const { results: votes } = await env.DB.prepare('SELECT q_index, num, choice, at FROM votes WHERE game_id = ? AND q_index <= ?')
     .bind(g.id, uptoIndex)
     .all();
-  const { results: rounds } = await env.DB.prepare('SELECT q_index, started_at FROM rounds WHERE game_id = ?').bind(g.id).all();
+  const { results: rounds } = await env.DB.prepare('SELECT q_index, started_at, players FROM rounds WHERE game_id = ?').bind(g.id).all();
   const startOf = new Map(rounds.map((r) => [r.q_index, r.started_at]));
+  const uptoOf = new Map(rounds.map((r) => [r.q_index, r.players]));
   const limitMs = (g.settings.timerSec || 30) * 1000;
   const score = new Map(players.map((p) => [p.num, { num: p.num, name: p.name, points: 0, hits: 0, times: [] }]));
 
   for (let i = 0; i <= uptoIndex; i++) {
     const qv = votes.filter((v) => v.q_index === i);
     if (!qv.length) continue;
-    const t = tally(optionsFor(g.questions[i], players), qv);
+    const t = tally(optionsFor(g.questions[i], players, uptoOf.get(i)), qv);
     const top = t[0]?.count || 0;
     const winners = new Set(t.filter((o) => o.count === top).map((o) => o.n));
     const start = startOf.get(i);
@@ -323,9 +330,16 @@ async function computeScores(env, g, players, uptoIndex) {
 }
 
 async function markRound(env, g, qIndex, startedAt, replace = false) {
-  await env.DB.prepare(`INSERT OR ${replace ? 'REPLACE' : 'IGNORE'} INTO rounds (game_id, q_index, started_at) VALUES (?, ?, ?)`)
-    .bind(g.id, qIndex, startedAt)
+  const m = await env.DB.prepare('SELECT MAX(num) AS m FROM players WHERE game_id = ?').bind(g.id).first();
+  await env.DB.prepare(`INSERT OR ${replace ? 'REPLACE' : 'IGNORE'} INTO rounds (game_id, q_index, started_at, players) VALUES (?, ?, ?, ?)`)
+    .bind(g.id, qIndex, startedAt, m?.m || null)
     .run();
+}
+
+// כמה משתתפות היו בכל שאלה (q_index → מספר)
+async function roundPlayers(env, gameId) {
+  const { results } = await env.DB.prepare('SELECT q_index, players FROM rounds WHERE game_id = ?').bind(gameId).all();
+  return new Map(results.map((r) => [r.q_index, r.players]));
 }
 
 // כמה זמן להשאיר תוצאות / טבלת מובילות במצב אוטומטי
@@ -411,25 +425,50 @@ async function gameAction(env, g, action, payload = {}) {
     case 'end':
       await setPhase(env, g, { phase: 'ended', status: 'ended' });
       break;
+    // משחק אוטומטי – הפעלה / כיבוי (העצירה עצמה היא pause / resume)
     case 'auto_on':
-    case 'auto_off':
-    {
-      const on = action === 'auto_on';
-      const settings = { ...g.settings, autoPlay: on };
+    case 'auto_off': {
+      const settings = { ...g.settings, autoPlay: action === 'auto_on' };
+      await setPhase(env, g, { settings: JSON.stringify(settings) });
+      g.settings = settings;
+      break;
+    }
+    // עצירה בכל רגע: השעון קופא, אין מעבר אוטומטי
+    case 'pause':
+      if (!g.paused_at) await setPhase(env, g, { paused_at: now() });
+      break;
+    // המשך: בשאלה – מאותה שנייה; בתוצאות / טבלה – הספירה למעבר מתחילה מחדש
+    case 'resume': {
+      if (!g.paused_at) break;
       const t = now();
-      const fields = { settings: JSON.stringify(settings) };
-      if (g.phase === 'question' && !on && !g.paused_at) fields.paused_at = t; // מקפיאים את הטיימר
-      if (on && g.paused_at) {
-        // ממשיכות מאותה שנייה: מזיזים את תחילת השאלה בזמן שהיה בעצירה
-        fields.paused_at = null;
+      const fields = { paused_at: null };
+      if (g.phase === 'question') {
         fields.q_started_at = g.q_started_at + (t - g.paused_at);
         await env.DB.prepare('UPDATE rounds SET started_at = started_at + ? WHERE game_id = ? AND q_index = ?')
           .bind(t - g.paused_at, g.id, g.q_index)
           .run();
       }
-      // מתחילים לספור מחדש מרגע ההפעלה
       await setPhase(env, g, fields);
-      g.settings = settings;
+      break;
+    }
+    // שינוי שם של משתתפת באמצע המשחק
+    case 'rename': {
+      const name = String(payload.name || '').trim().slice(0, 40);
+      if (!name) return 'צריך שם';
+      await env.DB.prepare('UPDATE players SET name = ? WHERE game_id = ? AND num = ?').bind(name, g.id, Number(payload.num)).run();
+      break;
+    }
+    // הוספת משתתפת באמצע המשחק (מקבלת את המספר הבא; משתתפת בשאלות שמתחילות מעכשיו)
+    case 'add_player': {
+      const name = String(payload.name || '').trim().slice(0, 40);
+      const phone = normPhone(payload.phone);
+      if (!name) return 'צריך שם';
+      const code = await env.DB.prepare('SELECT max_players FROM codes WHERE code = ?').bind(g.code).first();
+      const list = await loadPlayers(env, g.id);
+      if (list.length >= maxPlayersOf(code)) return `אפשר עד ${maxPlayersOf(code)} משתתפות במשחק`;
+      if (phone && list.some((p) => p.phone === phone)) return 'המספר הזה כבר רשום במשחק';
+      const num = list.reduce((m, p) => Math.max(m, p.num), 0) + 1;
+      await env.DB.prepare('INSERT INTO players (game_id, num, name, phone) VALUES (?, ?, ?, ?)').bind(g.id, num, name, phone || null).run();
       break;
     }
     // שינוי הגדרות באמצע המשחק (מהפאנל הצדדי)
@@ -543,7 +582,7 @@ async function playTurn(env, call, value) {
     } else {
       const choice = Number(value);
       const players = await loadPlayers(env, g.id);
-      const opts = optionsFor(g.questions[g.q_index], players);
+      const opts = optionsFor(g.questions[g.q_index], players, (await roundPlayers(env, g.id)).get(g.q_index));
       if (!opts.some((o) => o.n === choice)) {
         say.push(tts('אין מספר כזה'));
       } else if (g.settings.allowSelfVote === false && g.questions[g.q_index].type === 'names' && choice === call.num) {
@@ -629,6 +668,7 @@ async function hostRoutes(req, env, path, method, c) {
       label: c.label,
       gamesLeft: c.max_games ? c.max_games - c.games_used : null,
       phoneInfo: env.PHONE_INFO || '',
+      maxPlayers: maxPlayersOf(c),
       ai: aiQuota(env, c),
     });
   }
@@ -708,7 +748,7 @@ async function hostRoutes(req, env, path, method, c) {
       .map((p) => ({ name: String(p.name || '').trim().slice(0, 40), phone: normPhone(p.phone) }))
       .filter((p) => p.name);
     if (players.length < 2) return err('צריך לפחות 2 משתתפות');
-    if (players.length > MAX_PLAYERS) return err(`עד ${MAX_PLAYERS} משתתפות`);
+    if (players.length > maxPlayersOf(c)) return err(`בקוד הזה אפשר עד ${maxPlayersOf(c)} משתתפות`);
     const phones = players.map((p) => p.phone).filter(Boolean);
     if (new Set(phones).size !== phones.length) return err('יש מספר טלפון שמופיע פעמיים');
     for (const q of questions) {
@@ -762,8 +802,8 @@ async function hostRoutes(req, env, path, method, c) {
       return json(out);
     }
     if (m[2] === '/action' && method === 'POST') {
-      const { action, settings } = await body(req);
-      const problem = await gameAction(env, g, action, { settings });
+      const { action, settings, num, name, phone } = await body(req);
+      const problem = await gameAction(env, g, action, { settings, num, name, phone });
       if (problem) return err(problem);
       return json(await gameState(env, g));
     }
@@ -797,7 +837,7 @@ async function adminRoutes(req, env, path, method) {
   if (path === '/api/admin/codes') {
     if (method === 'GET') {
       const { results } = await env.DB.prepare(
-        'SELECT code, label, created_at, expires_at, max_games, games_used, active, ai_used, ai_month, ai_limit FROM codes ORDER BY created_at DESC'
+        'SELECT code, label, created_at, expires_at, max_games, games_used, active, ai_used, ai_month, ai_limit, max_players FROM codes ORDER BY created_at DESC'
       ).all();
       const month = new Date().toISOString().slice(0, 7);
       const def = Number(env.AI_DEFAULT_LIMIT) || 20;
@@ -813,9 +853,9 @@ async function adminRoutes(req, env, path, method) {
       const max = Number(b.maxGames) || 0;
       try {
         await env.DB.prepare(
-          'INSERT INTO codes (code, label, created_at, expires_at, max_games, games_used, active) VALUES (?, ?, ?, ?, ?, 0, 1)'
+          'INSERT INTO codes (code, label, created_at, expires_at, max_games, games_used, active, max_players) VALUES (?, ?, ?, ?, ?, 0, 1, ?)'
         )
-          .bind(code, String(b.label || '').slice(0, 100), now(), days ? now() + days * 86400000 : null, max || null)
+          .bind(code, String(b.label || '').slice(0, 100), now(), days ? now() + days * 86400000 : null, max || null, Number(b.maxPlayers) ? maxPlayersOf({ max_players: b.maxPlayers }) : null)
           .run();
       } catch {
         return err('הקוד כבר קיים');
@@ -839,6 +879,7 @@ async function adminRoutes(req, env, path, method) {
         vals.push(Number(b.addDays) ? base + Number(b.addDays) * 86400000 : null);
       }
       if ('maxGames' in b) (sets.push('max_games = ?'), vals.push(Number(b.maxGames) || null));
+      if ('maxPlayers' in b) (sets.push('max_players = ?'), vals.push(Number(b.maxPlayers) ? maxPlayersOf({ max_players: b.maxPlayers }) : null));
       if ('resetUsed' in b) sets.push('games_used = 0');
       if ('aiLimit' in b) (sets.push('ai_limit = ?'), vals.push(b.aiLimit === null || b.aiLimit === '' ? null : Math.max(0, Number(b.aiLimit) || 0)));
       if (!sets.length) return err('אין שינויים');

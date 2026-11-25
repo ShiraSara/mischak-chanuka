@@ -5,6 +5,7 @@ import InlineInput from './InlineInput.jsx';
 const fmt = (t) => (t ? new Date(t).toLocaleDateString('he-IL') : '');
 const DAYS = [[1, '24 שעות'], [7, 'שבוע'], [30, 'חודש'], [0, 'ללא הגבלה']];
 const GAMES = [[1, '1'], [3, '3'], [5, '5'], [10, '10'], [0, 'ללא הגבלה']];
+const PLAYERS = [[15, '15'], [20, '20'], [25, '25'], [30, '30']];
 
 // בחירה בלחיצה + אפשרות להקליד מספר אחר
 function Pick({ value, options, onChange, unit }) {
@@ -31,7 +32,7 @@ function Pick({ value, options, onChange, unit }) {
 // part: 'create' – טופס יצירת קוד · 'list' – הקודים הקיימים
 export default function CodesPanel({ pw, part = 'create', onCreated }) {
   const [codes, setCodes] = useState([]);
-  const [form, setForm] = useState({ label: '', code: '', days: 30, maxGames: 1 });
+  const [form, setForm] = useState({ label: '', code: '', days: 30, maxGames: 1, maxPlayers: 15 });
   const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -73,6 +74,7 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
     try {
       if (field === 'days') await adminApi(url, pw, 'PATCH', { addDays: Number(d) || 0 });
       if (field === 'games') await adminApi(url, pw, 'PATCH', { maxGames: Number(d) || 0 });
+      if (field === 'players') await adminApi(url, pw, 'PATCH', { maxPlayers: Number(d) || 0 });
       if (field === 'ai') await adminApi(url, pw, 'PATCH', { aiLimit: d === '' ? null : Number(d) });
       load();
     } catch (er) {
@@ -84,7 +86,7 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
     const url = '/api/admin/codes/' + c.code;
     try {
       if (a === 'toggle') await adminApi(url, pw, 'PATCH', { active: !c.active });
-      if (['days', 'games', 'ai'].includes(a)) return setEditing({ code: c.code, field: a });
+      if (['days', 'games', 'ai', 'players'].includes(a)) return setEditing({ code: c.code, field: a });
       if (a === 'del') {
         if (!confirm('למחוק את הקוד ' + c.code + '?')) return;
         await adminApi(url, pw, 'DELETE');
@@ -128,6 +130,12 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
           <div className="full">
             <label className="ad-label">כמה משחקים אפשר ליצור עם הקוד</label>
             <Pick value={form.maxGames} options={GAMES} unit="משחקים" onChange={(v) => set('maxGames', v)} />
+          </div>
+          <div className="full">
+            <label className="ad-label">
+              כמה משתתפות אפשר בכל משחק <small>עד 50</small>
+            </label>
+            <Pick value={form.maxPlayers} options={PLAYERS} unit="משתתפות" onChange={(v) => set('maxPlayers', v)} />
           </div>
           <div className="ad-submit">
             <button className="btn primary big">יצירת קוד ✨</button>
@@ -174,6 +182,7 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
                   <div className="lbl">{c.label || <span className="muted">ללא שם</span>}</div>
                   <div className="meta">
                     <span>🎮 {c.games_used}{c.max_games ? ` מתוך ${c.max_games}` : ''} משחקים</span>
+                    <span>👥 עד {c.max_players || 15} משתתפות</span>
                     <span>📅 {c.expires_at ? (expired ? 'פג תוקף ב-' : 'בתוקף עד ') + fmt(c.expires_at) : 'ללא הגבלת זמן'}</span>
                     <span>📷 {c.ai_used} מתוך {c.ai_limit_effective} קריאות החודש</span>
                     <span>נוצר {fmt(c.created_at)}</span>
@@ -185,14 +194,15 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
                     <InlineInput
                       type="number"
                       width={90}
-                      label={{ days: 'כמה ימים להוסיף? (0 = ללא הגבלה)', games: `מספר משחקים כולל (0 = ללא הגבלה), נוצלו ${c.games_used}`, ai: 'קריאות תמונה בחודש (ריק = ברירת מחדל)' }[editing.field]}
-                      initial={{ days: 30, games: c.max_games || 0, ai: c.ai_limit ?? '' }[editing.field]}
+                      label={{ days: 'כמה ימים להוסיף? (0 = ללא הגבלה)', games: `מספר משחקים כולל (0 = ללא הגבלה), נוצלו ${c.games_used}`, players: 'כמה משתתפות בכל משחק (2–50)', ai: 'קריאות תמונה בחודש (ריק = ברירת מחדל)' }[editing.field]}
+                      initial={{ days: 30, games: c.max_games || 0, players: c.max_players || 15, ai: c.ai_limit ?? '' }[editing.field]}
                       onSave={(d) => saveEdit(c, editing.field, d)}
                       onCancel={() => setEditing(null)}
                     />
                   )}
                   <button className="btn small" onClick={() => action(c, 'days')}>+ימים</button>
                   <button className="btn small" onClick={() => action(c, 'games')}>משחקים</button>
+                  <button className="btn small" onClick={() => action(c, 'players')}>👥 משתתפות</button>
                   <button className="btn small" onClick={() => action(c, 'ai')}>📷 מכסה</button>
                   <button className="btn small" onClick={() => action(c, 'toggle')}>{c.active ? 'השבתה' : 'הפעלה'}</button>
                   <button className="btn small danger" onClick={() => action(c, 'del')}>מחיקה</button>

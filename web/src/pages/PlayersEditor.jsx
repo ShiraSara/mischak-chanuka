@@ -10,7 +10,7 @@ const phoneDigits = (p) => p.replace(/\D/g, '');
 const phoneBad = (p) => p.trim() && (phoneDigits(p).length < 9 || phoneDigits(p).length > 12);
 
 // שלב 1: רשימת המשתתפות – מתחילה ב-5 שורות, אפשר להוסיף עד 15 או לייבא מאקסל
-export default function PlayersEditor({ players, setPlayers }) {
+export default function PlayersEditor({ players, setPlayers, max = MAX_PLAYERS }) {
   const [drag, setDrag] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const fileRef = useRef(null);
@@ -22,7 +22,7 @@ export default function PlayersEditor({ players, setPlayers }) {
     setPlayers(next.length ? next : emptyPlayers());
   };
   const add = () => {
-    if (players.length >= MAX_PLAYERS) return;
+    if (players.length >= max) return;
     setPlayers([...players, { name: '', phone: '' }]);
     setTimeout(() => rowsRef.current?.querySelector('.su-player:last-child input')?.focus(), 0);
   };
@@ -45,10 +45,10 @@ export default function PlayersEditor({ players, setPlayers }) {
       if (!list.length) return setImportMsg('⚠️ לא נמצאו שמות בקובץ');
       const filled = players.filter((p) => p.name.trim() || p.phone.trim());
       if (filled.length && !confirm(`להחליף את ${filled.length} המשתתפות שכבר הוקלדו ברשימה מהקובץ?`)) return;
-      const cut = list.slice(0, MAX_PLAYERS);
+      const cut = list.slice(0, max);
       setPlayers(cut);
       setImportMsg(
-        `✓ יובאו ${cut.length} משתתפות` + (list.length > MAX_PLAYERS ? ` (בקובץ היו ${list.length} – נלקחו ${MAX_PLAYERS} הראשונות)` : '')
+        `✓ יובאו ${cut.length} משתתפות` + (list.length > max ? ` (בקובץ היו ${list.length} – נלקחו ${max} הראשונות)` : '')
       );
     } catch (er) {
       setImportMsg('⚠️ ' + (er.message || 'לא הצלחתי לקרוא את הקובץ'));
@@ -69,7 +69,7 @@ export default function PlayersEditor({ players, setPlayers }) {
           <p>כל אחת מקבלת מספר. הטלפון לא חובה, אבל איתו המערכת מזהה אותה לבד כשהיא מתקשרת.</p>
         </div>
         <span className="su-count">
-          {named} / {MAX_PLAYERS}
+          {named} / {max}
         </span>
       </div>
 
@@ -119,8 +119,8 @@ export default function PlayersEditor({ players, setPlayers }) {
       {players.some((p) => phoneBad(p.phone)) && <div className="su-warn">יש מספר טלפון שנראה לא תקין (מסומן באדום)</div>}
       {dup && <div className="su-warn">אותו מספר טלפון מופיע פעמיים</div>}
 
-      <button className="su-add" onClick={add} disabled={players.length >= MAX_PLAYERS}>
-        {players.length >= MAX_PLAYERS ? `הגעת למקסימום – ${MAX_PLAYERS} משתתפות` : '+ הוספת משתתפת'}
+      <button className="su-add" onClick={add} disabled={players.length >= max}>
+        {players.length >= max ? `הגעת למקסימום – ${max} משתתפות` : '+ הוספת משתתפת'}
       </button>
 
       <div

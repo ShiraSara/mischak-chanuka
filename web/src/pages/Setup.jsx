@@ -157,7 +157,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
       </nav>
 
       <main className="su-body">
-        {step === 0 && <PlayersEditor players={players} setPlayers={setPlayers} />}
+        {step === 0 && <PlayersEditor players={players} setPlayers={setPlayers} max={me?.maxPlayers || 15} />}
         {step === 1 && (
           <QuestionsEditor
             questions={questions}

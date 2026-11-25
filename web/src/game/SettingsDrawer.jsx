@@ -28,7 +28,7 @@ function Chips({ value, options, onChange }) {
 }
 
 // פאנל צדדי לשינוי הגדרות באמצע המשחק – כל שינוי נכנס לתוקף מיד
-export default function SettingsDrawer({ game, soundOn, onToggleSound, onChange, onClose }) {
+export default function SettingsDrawer({ game, players = [], soundOn, onToggleSound, onChange, onPlayer, onClose }) {
   const s = game.settings;
   const [saving, setSaving] = useState(false);
   const set = async (patch) => {
@@ -60,6 +60,9 @@ export default function SettingsDrawer({ game, soundOn, onToggleSound, onChange,
           </button>
         </div>
 
+        <h3 className="drawer-sec">👥 משתתפות</h3>
+        <PlayersSection players={players} max={game.maxPlayers || 15} live={game.phase !== 'lobby'} onPlayer={onPlayer} />
+
         <h3 className="drawer-sec">🎮 המשחק</h3>
         <div className="su-set">
           {row(
@@ -89,6 +92,55 @@ export default function SettingsDrawer({ game, soundOn, onToggleSound, onChange,
         <h3 className="drawer-sec">🎨 צבעים</h3>
         <ThemePicker />
       </aside>
+    </div>
+  );
+}
+
+// שינוי שמות והוספת משתתפות – גם אחרי שהמשחק התחיל
+function PlayersSection({ players, max, live, onPlayer }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [msg, setMsg] = useState('');
+  const full = players.length >= max;
+  const add = async () => {
+    if (!name.trim()) return;
+    const ok = await onPlayer('add_player', { name, phone });
+    if (ok) {
+      setMsg(`✓ ${name.trim()} נוספה${live ? ' – משתתפת מהשאלה הבאה' : ''}`);
+      setName('');
+      setPhone('');
+    }
+  };
+  return (
+    <div className="su-set dr-players">
+      {players.map((p) => (
+        <div className="dr-player" key={p.num}>
+          <b className="num">{p.num}</b>
+          <input
+            type="text"
+            defaultValue={p.name}
+            key={p.num + p.name}
+            onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== p.name && onPlayer('rename', { num: p.num, name: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+          />
+          <span className={`dot ${p.connected ? 'on' : ''}`} title={p.connected ? 'מחוברת' : 'לא מחוברת'} />
+        </div>
+      ))}
+      {full ? (
+        <p className="muted">הגעתן למקסימום של {max} משתתפות במשחק.</p>
+      ) : (
+        <div className="dr-add">
+          <input type="text" placeholder="שם" value={name} onChange={(e) => setName(e.target.value)} />
+          <input type="tel" placeholder="טלפון" value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+          <button className="btn small primary" onClick={add}>
+            + הוספה
+          </button>
+        </div>
+      )}
+      {msg && <p className="muted">{msg}</p>}
+      <p className="muted dr-note">
+        {players.length} מתוך {max} · שם משתנה כשיוצאים מהשדה. משתתפת חדשה מקבלת את המספר הבא, ומתקשרת מהטלפון שנרשם.
+      </p>
     </div>
   );
 }

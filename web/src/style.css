@@ -739,3 +739,29 @@ input[type=range] { accent-color: var(--c1); }
 @keyframes win-slam { from { transform: scale(2.4); opacity: 0; } }
 .win-pts { margin-top: 10px; background: var(--c2); color: var(--ink); font-weight: 900; font-size: 26px; border-radius: 99px; padding: 6px 24px; border: 3px solid #fff; animation: rise .5s 1.3s both; }
 .win-stage .end-more, .win-stage .end-actions, .win-stage .end-next { animation: rise .5s 1.6s both; }
+
+/* עצירה / המשך – כפתור עגול בצד */
+.side-pause {
+  position: absolute; z-index: 9; right: max(10px, calc(3.5vw - 34px)); top: calc(50% + 130px);
+  width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--ink); background: #fff; color: var(--ink);
+  font-size: 1.7rem; cursor: pointer; box-shadow: 4px 4px 0 var(--ink); display: grid; place-items: center;
+}
+.side-pause:hover { transform: translateY(-2px); }
+.side-pause.paused { background: var(--c2); animation: pulse 1.4s infinite; }
+.paused-banner {
+  position: absolute; z-index: 9; top: 74px; left: 50%; transform: translateX(-50%);
+  background: var(--c2); color: var(--ink); font-weight: 900; font-size: 1.3rem; border: 3px solid var(--ink);
+  border-radius: 99px; padding: 6px 22px; box-shadow: 4px 4px 0 var(--ink); animation: pulse 1.6s infinite;
+}
+@media (max-width: 1100px) { .side-pause { right: 10px; top: auto; bottom: 90px; } }
+
+/* משתתפות בפאנל ההגדרות */
+.dr-players { gap: 6px; }
+.dr-player { display: flex; align-items: center; gap: 8px; }
+.dr-player .num { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--c1); color: var(--on-c1); flex: none; }
+.dr-player input { flex: 1; padding: 6px 10px !important; }
+.dr-player .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none; }
+.dr-player .dot.on { background: var(--ok); }
+.dr-add { display: flex; gap: 6px; margin-top: 4px; }
+.dr-add input { flex: 1; min-width: 0; padding: 6px 10px !important; }
+.dr-note { font-size: .85rem; margin: 4px 0 0; }

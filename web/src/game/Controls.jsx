@@ -55,13 +55,12 @@ export default function Controls({ game, soundOn, audio, onAction, clockOffset }
     main = [B('next', 'השאלה הבאה ←', 'primary big'), B('prev', '→ חזרה לתוצאות'), B('end', 'סיום המשחק', 'danger')];
   else main = [B('setup', 'משחק חדש', 'primary big')];
 
-  // מצב אוטומטי: ספירה + עצירה / הפעלה מחדש
-  const auto = game.settings.autoPlay;
+  // עצירה / המשך בכל רגע (+ ספירה למעבר האוטומטי)
   const live = game.phase !== 'lobby' && game.phase !== 'ended';
   const autoCtl = live && (
     <span className="auto-ctl" key="auto">
-      {auto && game.autoAt && <AutoBadge at={game.autoAt} clockOffset={clockOffset} />}
-      {auto ? B('auto_off', '⏸ עצירה') : B('auto_on', game.pausedAt ? '▶ המשך' : '⏩ אוטומטי', game.pausedAt ? 'gold' : '')}
+      {game.autoAt && <AutoBadge at={game.autoAt} clockOffset={clockOffset} />}
+      {game.pausedAt ? B('resume', '▶ המשך', 'gold') : B('pause', '⏸ עצירה')}
     </span>
   );
 
