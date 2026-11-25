@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { api, shuffle, withId } from '../lib/api.js';
+import { api, withId } from '../lib/api.js';
 import ImportDialog from './ImportDialog.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
 import { FEATURES } from '../lib/features.js';
@@ -11,7 +11,6 @@ const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
 export default function QuestionsEditor({ questions, setQuestions, trash, setTrash, banks, bankId, onPickBank, onBanksChanged, ai, setAi }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | on
-  const [randomN, setRandomN] = useState(15);
   const [msg, setMsg] = useState('');
   const [importing, setImporting] = useState(false);
   const [askPick, setAskPick] = useState(null); // גרסה שרוצים לעבור אליה (מחכה לאישור)
@@ -41,12 +40,6 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
     setShowTrash(false);
   };
   const setAll = (on, topic) => setQuestions(questions.map((q) => (topic == null || topicOf(q) === topic ? { ...q, on } : q)));
-  const pickRandom = () => {
-    const n = Math.max(1, Number(randomN) || 10);
-    const chosen = new Set(shuffle(questions.map((q) => q.id)).slice(0, n));
-    setQuestions(questions.map((q) => ({ ...q, on: chosen.has(q.id) })));
-    setMsg(`🎲 נבחרו באקראי ${Math.min(n, questions.length)} שאלות`);
-  };
   // שאלה חדשה – בסוף הנושא שבחרו (או בראש הרשימה)
   const add = (topic = '') => {
     setSearch('');
@@ -188,13 +181,6 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
       <div className="su-qtools">
         <button className="btn small" onClick={() => setAll(true)}>סימון הכל</button>
         <button className="btn small" onClick={() => setAll(false)}>ניקוי הסימון</button>
-        <span className="su-random" title="לא רוצה לבחור לבד? המערכת תסמן בשבילך שאלות אקראיות מתוך הגרסה">
-          <span className="muted">🎲 תבחרו לי באקראי</span>
-          <input type="number" min="1" value={randomN} onChange={(e) => setRandomN(e.target.value)} />
-          <button className="btn small" onClick={pickRandom}>
-            שאלות
-          </button>
-        </span>
         <span className="grow" />
         <button className={`btn small ${showTrash ? 'on' : 'ghost'}`} disabled={!trash.length} onClick={() => setShowTrash(!showTrash)}>
           🗑️ סל מחזור{trash.length ? ` (${trash.length})` : ''}
