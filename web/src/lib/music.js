@@ -58,8 +58,36 @@ class Music {
     if (this.master) this.master.gain.setTargetAtTime(v * BOOST, this.ctx.currentTime, 0.1);
   }
 
+  // סגנון מובנה, או מנגינה שהועלתה: 'track:<id>'
   setStyle(s) {
-    if (MUSIC_STYLES.some((x) => x.id === s)) this.style = s;
+    if (!(MUSIC_STYLES.some((x) => x.id === s) || String(s).startsWith('track:')) || s === this.style) return;
+    this.style = s;
+    if (this.mode !== 'off') this.syncTrack();
+  }
+
+  get isTrack() {
+    return String(this.style).startsWith('track:');
+  }
+
+  // קובץ שמע: מתנגן בלולאה דרך אותו מגבר (עוצמה, הנמכה בתוצאות)
+  syncTrack() {
+    if (!this.isTrack || this.mode === 'off') {
+      if (this.audio && !this.audio.paused) this.audio.pause();
+      return;
+    }
+    if (!this.ensure()) return;
+    const src = '/music/' + this.style.slice(6);
+    if (!this.audio) {
+      this.audio = new Audio();
+      this.audio.loop = true;
+      this.audio.preload = 'auto';
+      // קבצים מוקלטים חזקים יותר מהצלילים המובנים – מנמיכים קצת כדי שיתאזנו
+      const g = this.ctx.createGain();
+      g.gain.value = 0.45;
+      this.ctx.createMediaElementSource(this.audio).connect(g).connect(this.bus);
+    }
+    if (!this.audio.src.endsWith(src)) this.audio.src = src;
+    this.audio.play().catch(() => {});
   }
 
   setTension(t) {
@@ -72,21 +100,26 @@ class Music {
 
   setMode(mode, force = false) {
     if (mode === this.mode && !force) return;
+    const prev = this.mode;
     this.mode = mode;
     if (mode === 'off') {
       if (this.bus) this.bus.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
       clearInterval(this.timer);
       this.timer = null;
+      if (this.audio) setTimeout(() => this.mode === 'off' && this.audio.pause(), 600);
       return;
     }
     if (!this.ensure()) return;
     const c = this.ctx;
+    // מנגינה מקובץ שכבר מתנגנת – ממשיכה בלי הפסקה בין שלבי המשחק
+    if (this.isTrack && prev !== 'off' && this.audio && !this.audio.paused) return this.syncTrack();
     this.bus.gain.cancelScheduledValues(c.currentTime);
     this.bus.gain.setValueAtTime(0.0001, c.currentTime);
     this.bus.gain.exponentialRampToValueAtTime(1, c.currentTime + 0.5);
     this.step = 0;
     this.nextTime = c.currentTime + 0.08;
     if (!this.timer) this.timer = setInterval(() => this.schedule(), 25);
+    this.syncTrack();
   }
 
   bpm() {
@@ -100,7 +133,7 @@ class Music {
   }
 
   schedule() {
-    if (!this.ctx || this.mode === 'off') return;
+    if (!this.ctx || this.mode === 'off' || this.isTrack) return; // מנגינה מקובץ – בלי הצלילים המובנים
     if (this.nextTime < this.ctx.currentTime - 0.3) this.nextTime = this.ctx.currentTime + 0.05;
     while (this.nextTime < this.ctx.currentTime + 0.12) {
       this.play(this.step, this.nextTime);

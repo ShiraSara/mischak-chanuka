@@ -3,6 +3,7 @@ import { ASSETS } from './assets.js';
 import { readQuestionsFromImages, AiError, aiEnabled, diagnose } from './ai.js';
 import { synthesize, diagnoseTts } from './tts.js';
 import { makeProfiles } from './profiles.js';
+import { publicTracks, serveTrack, adminMusic } from './music.js';
 
 const MAX_PLAYERS = 15; // ברירת המחדל למספר משתתפות במשחק (ולתשובות קבועות בשאלה)
 const HARD_MAX_PLAYERS = 50; // הכי הרבה שאפשר להגדיר לקוד
@@ -660,6 +661,15 @@ export default {
           .bind(token, c.code, now())
           .run();
         return json({ token, label: c.label, gamesLeft: c.max_games ? c.max_games - c.games_used : null });
+      }
+
+      // מנגינות: רשימה וקבצים (פתוח), וניהול (עם סיסמה)
+      if (path === '/api/music' && method === 'GET') return await publicTracks(env);
+      const mt = path.match(/^\/music\/([a-z0-9]+)$/);
+      if (mt && method === 'GET') return await serveTrack(req, env, mt[1]);
+      if (path.startsWith('/api/admin/music')) {
+        if (!adminAuth(req, env)) return err('סיסמת ניהול שגויה', 401);
+        return await adminMusic(req, env, path, method);
       }
 
       if (path.startsWith('/api/admin/')) return await adminRoutes(req, env, path, method);

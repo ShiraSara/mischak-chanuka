@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from './adminApi.js';
 import CodesPanel from './CodesPanel.jsx';
 import BankPanel from './BankPanel.jsx';
+import MusicPanel from './MusicPanel.jsx';
 import AiCheckPanel from './AiCheckPanel.jsx';
 import { FEATURES } from '../lib/features.js';
 
@@ -9,6 +10,7 @@ const TABS = [
   { id: 'create', label: '➕ יצירת קוד ללקוחה' },
   { id: 'codes', label: '🎮 משחקים קיימים' },
   { id: 'banks', label: '📚 מאגרי שאלות' },
+  { id: 'music', label: '🎵 מנגינות' },
 ];
 import '../pages/setup.css';
 import './admin.css';
@@ -94,6 +96,7 @@ export default function AdminApp() {
         {tab === 'create' && <CodesPanel pw={pw} part="create" />}
         {tab === 'codes' && <CodesPanel pw={pw} part="list" />}
         {tab === 'banks' && <BankPanel pw={pw} />}
+        {tab === 'music' && <MusicPanel pw={pw} />}
         {/* בדיקת חיבור ל-AI – כבויה כרגע (lib/features.js) */}
         {FEATURES.aiCheck && tab === 'create' && <AiCheckPanel pw={pw} />}
       </main>

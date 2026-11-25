@@ -143,3 +143,11 @@
 .aq-row .aq-move-to { width: auto !important; flex: none; }
 .aq-text { width: 100%; }
 .bp-search input { background: transparent !important; color: var(--text); }
+
+/* מנגינות */
+.mu-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.mu-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 2.5px solid var(--edge); border-radius: 14px; background: var(--surface); flex-wrap: wrap; }
+.mu-row .ic { font-size: 1.4rem; }
+.mu-row input { flex: 1; min-width: 160px; font-weight: 800; }
+.mu-row audio { height: 36px; max-width: 320px; }
+.mu-note { font-size: .88rem; margin: 14px 0 0; }

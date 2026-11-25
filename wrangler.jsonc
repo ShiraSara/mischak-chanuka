@@ -5,6 +5,7 @@
   "preview_urls": false,
   "compatibility_date": "2026-11-01",
   "vars": { "PHONE_INFO": "077-2269931" },
+  "kv_namespaces": [{ "binding": "MUSIC", "id": "bbab9482ee5e4e3b96d2793194df4e07" }],
   "d1_databases": [
     { "binding": "DB", "database_name": "seker-game-db", "database_id": "f3b405ff-0351-45ec-a302-e33cf3dc562d" }
   ]

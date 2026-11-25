@@ -23,6 +23,15 @@ export default function AudioSettings({ live = false }) {
   const [playing, setPlaying] = useState(null); // סגנון שמתנגן כרגע
   const [sampleState, setSampleState] = useState('');
   const set = (patch) => setP(setPrefs(patch));
+  // מנגינות שהמנהלת העלתה
+  const [tracks, setTracks] = useState([]);
+  useEffect(() => {
+    fetch('/api/music')
+      .then((r) => r.json())
+      .then((d) => setTracks(d.tracks || []))
+      .catch(() => {});
+  }, []);
+  const styles = [...tracks.map((t) => ({ id: 'track:' + t.id, name: t.name, icon: '🎶' })), ...MUSIC_STYLES];
 
   useEffect(() => onVoicesChanged(() => setVoices(hebrewVoices())), []);
   useEffect(
@@ -63,7 +72,7 @@ export default function AudioSettings({ live = false }) {
       <div className="su-set-row">
         <div>
           <b>🎵 מנגינת רקע</b>
-          <small>מאיצה כשהזמן נגמר, תופים לפני כל שאלה וחגיגית בתוצאות</small>
+          <small>בוחרים מנגינה למשחק – 🎶 מנגינות שהועלו, או אחת מהמובנות</small>
         </div>
         <div className="row" style={{ gap: 12 }}>
           <input
@@ -84,7 +93,7 @@ export default function AudioSettings({ live = false }) {
       </div>
       {p.music && (
         <div className="styles-row">
-          {MUSIC_STYLES.map((st) => (
+          {styles.map((st) => (
             <div key={st.id} className={`style-card ${p.musicStyle === st.id ? 'on' : ''}`} onClick={() => set({ musicStyle: st.id })}>
               <span className="ic">{st.icon}</span>
               <b>{st.name}</b>
