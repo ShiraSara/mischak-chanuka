@@ -46,6 +46,7 @@ export default function Game({ gameId, me, onExit }) {
   const timerRef = useRef(null);
   const snapRef = useRef(null); // מצב המשחק שמוצג כרגע על הבמה (לא מתחלף באמצע מעבר וילון)
   const stateRef = useRef(null);
+  const pollRef = useRef(null); // משיכת מצב מיידית (ומשם ממשיכים בקצב החדש)
   stateRef.current = state;
 
   const setCurtain = (next) => {
@@ -53,24 +54,41 @@ export default function Game({ gameId, me, onExit }) {
     setCurtainState(next);
   };
 
-  // משיכת מצב המשחק מהשרת כל שנייה
+  // משיכת מצב המשחק מהשרת. הקצב לפי השלב:
+  // במשחק – כל שנייה · בהמתנה לפני ההתחלה – כל 2 שניות · אחרי הסיום – כל 30 שניות
+  // לשונית מוסתרת – לאט יותר (5 שניות באמצע משחק, כדי שמשחק אוטומטי ימשיך להתקדם)
   useEffect(() => {
     let alive = true;
+    let t;
+    const delay = () => {
+      const phase = stateRef.current?.game.phase;
+      const live = phase && phase !== 'lobby' && phase !== 'ended';
+      if (document.hidden) return live ? 5000 : 30000;
+      if (live || !phase) return 1000;
+      return phase === 'lobby' ? 2000 : 30000;
+    };
     const load = async () => {
+      clearTimeout(t);
       try {
         const s = await api(`/api/games/${gameId}`);
         if (!alive) return;
         setClockOffset(s.serverNow - Date.now());
         setState(s);
+        stateRef.current = s;
       } catch (er) {
         if (alive && er.message.includes('לא נמצא')) onExit(true);
       }
+      if (alive) t = setTimeout(load, delay());
     };
+    // חוזרים ללשונית – מתעדכנים מיד
+    const onVis = () => !document.hidden && load();
+    document.addEventListener('visibilitychange', onVis);
+    pollRef.current = load;
     load();
-    const t = setInterval(load, 1000);
     return () => {
       alive = false;
-      clearInterval(t);
+      clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVis);
       clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,6 +156,7 @@ export default function Game({ gameId, me, onExit }) {
     if (action === 'restart_question' && !confirm('למחוק את כל ההצבעות לשאלה הזו?')) return;
     try {
       setState(await api(`/api/games/${gameId}/action`, { method: 'POST', body: { action } }));
+      setTimeout(() => pollRef.current?.(), 300);
     } catch (er) {
       alert(er.message);
     }
