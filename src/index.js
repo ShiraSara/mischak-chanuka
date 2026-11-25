@@ -522,8 +522,9 @@ function msgCmd(messages) {
 }
 
 const HANGUP = 'go_to_folder=hangup';
-// "הודעה" ריקה – המערכת לא אומרת כלום, רק מחכה להקשה
-const SILENT = 't-';
+// "הודעה" שקטה בזמן ההמתנה להקשה: קובץ שקט קצר (000.wav) שהועלה לשלוחה.
+// (טקסט ריק "t-" גרם למערכת להכריז "שגיאה" בכל סבב המתנה)
+const SILENT = 'f-000';
 
 export async function handleYemot(env, params) {
   if (params.hangup === 'yes') {
