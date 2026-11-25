@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api, shuffle, withId } from '../lib/api.js';
 import PlayersEditor, { emptyPlayers } from './PlayersEditor.jsx';
+import { estimateMinutes, fmtMinutes } from '../lib/gameLength.js';
 import QuestionsEditor from './QuestionsEditor.jsx';
 import SettingsPanel, { DEFAULT_SETTINGS } from './SettingsPanel.jsx';
 import './setup.css';
@@ -110,7 +111,8 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
   const sub = me
     ? (me.label ? me.label + ' · ' : '') + (me.gamesLeft == null ? 'ללא הגבלת משחקים' : `נותרו ${me.gamesLeft} משחקים בקוד`)
     : '';
-  const stepInfo = [`${filled.length} משתתפות`, `${chosen.length} שאלות`, settings.timerSec ? `טיימר ${settings.timerSec} שניות` : 'בלי טיימר'];
+  const minutesText = fmtMinutes(estimateMinutes(chosen, settings));
+  const stepInfo = [`${filled.length} משתתפות`, `${chosen.length} שאלות`, `כ-${minutesText}`];
 
   return (
     <div className="su">
@@ -174,7 +176,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
           />
         )}
         {step === 2 && (
-          <SettingsPanel settings={settings} setSettings={setSettings} playersCount={filled.length} questionsCount={chosen.length} />
+          <SettingsPanel settings={settings} setSettings={setSettings} playersCount={filled.length} questionsCount={chosen.length} minutesText={minutesText} />
         )}
       </main>
 

@@ -6,7 +6,6 @@ const HOLDS = [5, 8, 12, 20];
 import ThemePicker from '../lib/ThemePicker.jsx';
 import AudioSettings from './AudioSettings.jsx';
 
-const TIMERS = [0, 10, 15, 20, 30, 45, 60, 90];
 
 function Switch({ checked, onChange }) {
   return (
@@ -18,7 +17,7 @@ function Switch({ checked, onChange }) {
 }
 
 // שלב 3: הגדרות + סיכום לפני יצירת המשחק
-export default function SettingsPanel({ settings, setSettings, playersCount, questionsCount }) {
+export default function SettingsPanel({ settings, setSettings, playersCount, questionsCount, minutesText }) {
   const set = (k, v) => setSettings({ ...settings, [k]: v });
   const row = (k, title, desc) => (
     <div className="su-set-row">
@@ -31,8 +30,6 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
   );
 
   // הערכה גסה: זמן הצבעה + וילון + הצגת תוצאות
-  const perQ = (Number(settings.timerSec) || 30) + 25;
-  const minutes = Math.max(1, Math.round((questionsCount * perQ) / 60));
 
   return (
     <div className="su-card">
@@ -57,19 +54,6 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
             style={{ maxWidth: 320 }}
             onChange={(e) => set('title', e.target.value)}
           />
-        </div>
-        <div className="su-set-row">
-          <div>
-            <b>⏱ טיימר לכל שאלה</b>
-            <small>ספירה לאחור על המסך, עם צפצוף בשניות האחרונות</small>
-          </div>
-          <div className="su-timer">
-            {TIMERS.map((t) => (
-              <button key={t} className={Number(settings.timerSec) === t ? 'on' : ''} onClick={() => set('timerSec', t)}>
-                {t === 0 ? 'בלי' : t}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="su-set-row">
           <div>
@@ -98,9 +82,7 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
         {row(
           'autoPlay',
           '⏩ משחק אוטומטי',
-          Number(settings.timerSec)
-            ? 'כשהזמן נגמר (או כשכולן הצביעו) התוצאות מוצגות לבד, ואחרי כמה שניות עוברים לשאלה הבאה'
-            : 'בלי טיימר – התוצאות יוצגו כשכולן הצביעו, ואחרי כמה שניות עוברים לשאלה הבאה'
+          'כשהזמן של השאלה נגמר (או כשכולן הצביעו) התוצאות מוצגות לבד, ואחרי כמה שניות עוברים לשאלה הבאה'
         )}
         {settings.autoPlay && (
           <div className="su-set-row">
@@ -130,12 +112,8 @@ export default function SettingsPanel({ settings, setSettings, playersCount, que
           <span>שאלות</span>
         </div>
         <div>
-          <b>{Number(settings.timerSec) || '—'}</b>
-          <span>שניות לכל שאלה</span>
-        </div>
-        <div>
-          <b>{minutes}</b>
-          <span>דקות משחק (בערך)</span>
+          <b>{minutesText}</b>
+          <span>משך משוער (הטיימר של כל שאלה לפי המאגר)</span>
         </div>
       </div>
     </div>

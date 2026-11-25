@@ -66,8 +66,8 @@ export default function SettingsDrawer({ game, players = [], soundOn, onToggleSo
         <h3 className="drawer-sec">🎮 המשחק</h3>
         <div className="su-set">
           {row(
-            '⏱ טיימר לכל שאלה',
-            game.phase === 'question' ? 'משנה גם את השאלה הנוכחית' : '',
+            '⏱ טיימר רגיל',
+            'לשאלות שאין להן זמן משלהן במאגר',
             <Chips value={s.timerSec} options={TIMERS.map((t) => [t, t ? `${t}` : 'בלי'])} onChange={(v) => set({ timerSec: v })} />
           )}
           {row('⏩ משחק אוטומטי', 'תוצאות כשהזמן נגמר, ומעבר לבד לשאלה הבאה', <Switch checked={s.autoPlay} onChange={(v) => set({ autoPlay: v })} />)}
