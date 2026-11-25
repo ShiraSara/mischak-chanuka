@@ -83,7 +83,7 @@ export default function AdminApp() {
           </div>
         </div>
       </header>
-      <main className="su-body ad-body">
+      <main className={`su-body ad-body ${tab === 'banks' ? 'wide' : ''}`}>
         <nav className="ad-tabs">
           {TABS.map((t) => (
             <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)}>
