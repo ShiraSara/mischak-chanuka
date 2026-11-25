@@ -2,7 +2,6 @@ import { useState } from 'react';
 import AudioSettings from '../pages/AudioSettings.jsx';
 import ThemePicker from '../lib/ThemePicker.jsx';
 
-const TIMERS = [0, 10, 15, 20, 30, 45, 60, 90];
 const HOLDS = [5, 8, 12, 20];
 const BOARDS = [[0, 'בלי'], [5, 'כל 5'], [8, 'כל 8'], [10, 'כל 10']];
 
@@ -65,11 +64,6 @@ export default function SettingsDrawer({ game, players = [], soundOn, onToggleSo
 
         <h3 className="drawer-sec">🎮 המשחק</h3>
         <div className="su-set">
-          {row(
-            '⏱ טיימר רגיל',
-            'לשאלות שאין להן זמן משלהן במאגר',
-            <Chips value={s.timerSec} options={TIMERS.map((t) => [t, t ? `${t}` : 'בלי'])} onChange={(v) => set({ timerSec: v })} />
-          )}
           {row('⏩ משחק אוטומטי', 'תוצאות כשהזמן נגמר, ומעבר לבד לשאלה הבאה', <Switch checked={s.autoPlay} onChange={(v) => set({ autoPlay: v })} />)}
           {s.autoPlay &&
             row(
