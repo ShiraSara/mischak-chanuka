@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { playSound } from '../lib/sound.js';
 import Confetti from './Confetti.jsx';
-import { downloadProfiles } from '../lib/download.js';
 
 const AUTO_MS = 9000;
 
 // "אז מה למדתי עלייך?" – כרטיס אישי לכל משתתפת. עובר לבד, ובסוף חוזר למסך המנצחת.
-export default function ProfilesShow({ gameId, title = '', soundOn, onClose }) {
+export default function ProfilesShow({ gameId, onPdf, soundOn, onClose }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [i, setI] = useState(0);
@@ -67,9 +66,11 @@ export default function ProfilesShow({ gameId, title = '', soundOn, onClose }) {
           ✨ מה למדתי עלייך? · {i + 1} מתוך {list.length}
         </span>
         <span className="grow" />
-        <button className="btn small ghost pf-btn" onClick={() => downloadProfiles(list, title)}>
-          ⬇️ הורדת הסיכום
-        </button>
+        {onPdf && (
+          <button className="btn small ghost pf-btn" onClick={onPdf}>
+            📄 סיכום PDF
+          </button>
+        )}
         <button className="btn small ghost pf-btn" onClick={() => setAuto(!auto)}>
           {auto ? '⏸ עצירה' : '▶ אוטומטי'}
         </button>

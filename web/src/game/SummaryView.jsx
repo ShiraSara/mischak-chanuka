@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import ProfilesShow from './ProfilesShow.jsx';
 import Confetti from './Confetti.jsx';
 import { playSound } from '../lib/sound.js';
-import { downloadProfiles } from '../lib/download.js';
+import { printSummary } from '../lib/summaryPdf.js';
 import { api } from '../lib/api.js';
 
 const TO_PROFILES_SEC = 10; // כמה שניות המנצחת על המסך לפני "מה למדתי עלייך?"
 
-// סוף המשחק: המנצחת בעיגול, הורדת הסיכום של ה-AI, ואחרי כמה שניות – מעבר לבד לכרטיסים האישיים
+// סוף המשחק: מסך ניצחון חגיגי, סיכום PDF, ואחרי כמה שניות – מעבר לבד לכרטיסים האישיים
 export default function SummaryView({ state, soundOn }) {
   const profilesOn = state.game.settings.profiles !== false;
   const [stage, setStage] = useState('winner'); // winner | profiles
@@ -26,11 +26,19 @@ export default function SummaryView({ state, soundOn }) {
     return () => clearTimeout(t);
   }, [stage, left, profilesOn, seen]);
 
+  // סיכום PDF: הדירוג, מי ניצחה בכל שאלה, והכרטיסים של ה-AI (אם כבר נכתבו – נשמרים, בלי פנייה נוספת)
+  const pdf = async () => {
+    let profiles = null;
+    if (profilesOn) profiles = (await api(`/api/games/${state.game.id}/profiles`, { method: 'POST', body: {} }).catch(() => null))?.profiles || null;
+    printSummary(state, profiles);
+  };
+
   if (stage === 'profiles')
     return (
       <ProfilesShow
         gameId={state.game.id}
         title={state.game.settings.title}
+        onPdf={pdf}
         soundOn={soundOn}
         onClose={() => {
           setSeen(true);
@@ -46,21 +54,23 @@ export default function SummaryView({ state, soundOn }) {
   const fastest = state.scores?.fastest;
 
   return (
-    <div className="end-wrap">
+    <div className="end-wrap win-stage">
+      <Confetti full />
       <div className="end-kicker">🎊 סוף המשחק{state.game.settings.title ? ` · ${state.game.settings.title}` : ''}</div>
 
       {winners.length ? (
-        <div className="end-circle">
-          <span className="crown">👑</span>
-          <span className="lbl">{winners.length > 1 ? 'תיקו! המנצחות' : 'המנצחת'}</span>
-          <b className={`name ${winners.length > 1 ? 'many' : ''}`}>{winners.map((w) => w.name).join(' & ')}</b>
-          <span className="pts">{topPts} נקודות</span>
-          <Confetti />
+        <div className="win-hero">
+          <div className="win-rays" />
+          <div className="win-trophy">🏆</div>
+          <div className="win-kicker">{winners.length > 1 ? '🎉 תיקו! והמנצחות הן… 🎉' : '🎉 והמנצחת היא… 🎉'}</div>
+          <div className={`win-name ${winners.length > 1 ? 'many' : ''}`}>{winners.map((w) => w.name).join(' & ')}</div>
+          <div className="win-pts">{topPts} נקודות</div>
         </div>
       ) : (
-        <div className="end-circle">
-          <span className="crown">🎉</span>
-          <b className="name many">תודה ששיחקתן!</b>
+        <div className="win-hero">
+          <div className="win-rays" />
+          <div className="win-trophy">🎉</div>
+          <div className="win-name many">תודה ששיחקתן!</div>
         </div>
       )}
 
@@ -76,18 +86,9 @@ export default function SummaryView({ state, soundOn }) {
       )}
 
       <div className="end-actions">
-        {profilesOn && seen && (
-          <button
-            className="btn gold"
-            onClick={async () => {
-              // הכרטיסים כבר נכתבו ונשמרו – מקבלים אותם שוב מהשרת בלי לפנות שוב ל-AI
-              const d = await api(`/api/games/${state.game.id}/profiles`, { method: 'POST', body: {} });
-              downloadProfiles(d.profiles, state.game.settings.title);
-            }}
-          >
-            ⬇️ הורדת הסיכום
-          </button>
-        )}
+        <button className="btn gold" onClick={pdf}>
+          📄 סיכום המשחק (PDF)
+        </button>
         {profilesOn && (
           <button className="btn primary" onClick={() => setStage('profiles')}>
             ✨ אז מה למדתי עלייך?
