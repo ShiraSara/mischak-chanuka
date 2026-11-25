@@ -132,7 +132,7 @@ async function setBankQuestions(env, bankId, list) {
 
 // ---------- הרשאות ----------
 function codeProblem(c) {
-  if (!c) return 'הקוד לא קיים';
+  if (!c || c.deleted_at) return 'הקוד לא קיים';
   if (!c.active) return 'הקוד אינו פעיל';
   if (c.expires_at && c.expires_at < now()) return 'תוקף הקוד הסתיים';
   return null;
@@ -865,8 +865,14 @@ async function adminRoutes(req, env, path, method) {
 
   if (path === '/api/admin/codes') {
     if (method === 'GET') {
+      // קודים שנמחקו לפני יותר מ-30 יום – נמחקים סופית
+      const old = now() - 30 * 86400000;
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM sessions WHERE code IN (SELECT code FROM codes WHERE deleted_at < ?)').bind(old),
+        env.DB.prepare('DELETE FROM codes WHERE deleted_at < ?').bind(old),
+      ]);
       const { results } = await env.DB.prepare(
-        'SELECT code, label, created_at, expires_at, max_games, games_used, active, ai_used, ai_month, ai_limit, max_players FROM codes ORDER BY created_at DESC'
+        'SELECT code, label, created_at, expires_at, max_games, games_used, active, ai_used, ai_month, ai_limit, max_players, deleted_at FROM codes ORDER BY created_at DESC'
       ).all();
       const month = new Date().toISOString().slice(0, 7);
       const def = Number(env.AI_DEFAULT_LIMIT) || 20;
@@ -893,6 +899,25 @@ async function adminRoutes(req, env, path, method) {
     }
   }
 
+  // פעולה על כמה קודים יחד: מחיקה (לסל), שחזור, מחיקה לצמיתות, השבתה
+  if (path === '/api/admin/codes/bulk' && method === 'POST') {
+    const { codes = [], action } = await body(req);
+    const list = codes.map(String).filter((c) => /^[A-Za-z0-9]+$/.test(c)).slice(0, 500);
+    const stmts = [];
+    for (const c of list) {
+      if (action === 'delete')
+        stmts.push(env.DB.prepare('UPDATE codes SET deleted_at = ? WHERE code = ?').bind(now(), c), env.DB.prepare('DELETE FROM sessions WHERE code = ?').bind(c));
+      else if (action === 'restore') stmts.push(env.DB.prepare('UPDATE codes SET deleted_at = NULL WHERE code = ?').bind(c));
+      else if (action === 'forever')
+        stmts.push(env.DB.prepare('DELETE FROM sessions WHERE code = ?').bind(c), env.DB.prepare('DELETE FROM codes WHERE code = ?').bind(c));
+      else if (action === 'disable') stmts.push(env.DB.prepare('UPDATE codes SET active = 0 WHERE code = ?').bind(c));
+      else if (action === 'enable') stmts.push(env.DB.prepare('UPDATE codes SET active = 1 WHERE code = ?').bind(c));
+      else return err('פעולה לא מוכרת');
+    }
+    if (stmts.length) await env.DB.batch(stmts);
+    return json({ ok: true, count: list.length });
+  }
+
   const cm = path.match(/^\/api\/admin\/codes\/([A-Za-z0-9]+)$/);
   if (cm) {
     if (method === 'PATCH') {
@@ -910,16 +935,20 @@ async function adminRoutes(req, env, path, method) {
       if ('maxGames' in b) (sets.push('max_games = ?'), vals.push(Number(b.maxGames) || null));
       if ('maxPlayers' in b) (sets.push('max_players = ?'), vals.push(Number(b.maxPlayers) ? maxPlayersOf({ max_players: b.maxPlayers }) : null));
       if ('resetUsed' in b) sets.push('games_used = 0');
+      if ('restore' in b) sets.push('deleted_at = NULL');
       if ('aiLimit' in b) (sets.push('ai_limit = ?'), vals.push(b.aiLimit === null || b.aiLimit === '' ? null : Math.max(0, Number(b.aiLimit) || 0)));
       if (!sets.length) return err('אין שינויים');
       await env.DB.prepare(`UPDATE codes SET ${sets.join(', ')} WHERE code = ?`).bind(...vals, cm[1]).run();
       return json({ ok: true });
     }
     if (method === 'DELETE') {
-      await env.DB.batch([
-        env.DB.prepare('DELETE FROM sessions WHERE code = ?').bind(cm[1]),
-        env.DB.prepare('DELETE FROM codes WHERE code = ?').bind(cm[1]),
-      ]);
+      // רגיל – לסל המחזור (הקוד מפסיק לעבוד מיד); ?forever=1 – מחיקה סופית
+      const forever = new URL(req.url).searchParams.get('forever') === '1';
+      await env.DB.batch(
+        forever
+          ? [env.DB.prepare('DELETE FROM sessions WHERE code = ?').bind(cm[1]), env.DB.prepare('DELETE FROM codes WHERE code = ?').bind(cm[1])]
+          : [env.DB.prepare('UPDATE codes SET deleted_at = ? WHERE code = ?').bind(now(), cm[1]), env.DB.prepare('DELETE FROM sessions WHERE code = ?').bind(cm[1])]
+      );
       return json({ ok: true });
     }
   }

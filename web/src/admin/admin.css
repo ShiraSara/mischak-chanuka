@@ -152,3 +152,10 @@
 .mu-row audio { height: 36px; max-width: 320px; }
 .mu-note { font-size: .88rem; margin: 14px 0 0; }
 .bp-trash { margin-bottom: 16px; } .bp-trash .su-trash-row span:first-child { text-decoration: none; color: var(--text); }
+
+/* סימון מרובה וסל מחזור לקודים */
+.ad-bulk { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 12px; border: 2px dashed var(--line); border-radius: 12px; }
+.ad-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; }
+.ad-code .c { display: flex; align-items: center; gap: 8px; }
+.ad-pick-box, .ad-check input { width: 18px; height: 18px; accent-color: var(--c1); cursor: pointer; }
+.ad-code.picked { outline: 3px solid var(--c1); outline-offset: 2px; }

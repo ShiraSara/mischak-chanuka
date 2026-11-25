@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS codes (
   ai_used INTEGER DEFAULT 0,   -- כמה קריאות תמונה נוצלו החודש
   ai_month TEXT,               -- החודש של המונה (YYYY-MM)
   ai_limit INTEGER,            -- מגבלה חודשית (NULL = ברירת המחדל)
-  max_players INTEGER          -- מגבלת משתתפות במשחק (NULL = 15)
+  max_players INTEGER,         -- מגבלת משתתפות במשחק (NULL = 15)
+  deleted_at INTEGER           -- נמחק (בסל המחזור) – NULL = פעיל
 );
 CREATE TABLE IF NOT EXISTS banks (     -- מאגרי שאלות (סולידי / נועז / ...)
   id INTEGER PRIMARY KEY AUTOINCREMENT,

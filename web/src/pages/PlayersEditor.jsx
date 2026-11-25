@@ -13,6 +13,7 @@ const phoneBad = (p) => p.trim() && (phoneDigits(p).length < 9 || phoneDigits(p)
 export default function PlayersEditor({ players, setPlayers, max = MAX_PLAYERS }) {
   const [drag, setDrag] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [pending, setPending] = useState(null); // רשימה מקובץ שמחכה לאישור (להחליף / להוסיף)
   const fileRef = useRef(null);
   const rowsRef = useRef(null);
 
@@ -44,18 +45,23 @@ export default function PlayersEditor({ players, setPlayers, max = MAX_PLAYERS }
       const list = await readPlayersFile(file);
       if (!list.length) return setImportMsg('⚠️ לא נמצאו שמות בקובץ');
       const filled = players.filter((p) => p.name.trim() || p.phone.trim());
-      if (filled.length && !confirm(`להחליף את ${filled.length} המשתתפות שכבר הוקלדו ברשימה מהקובץ?`)) return;
-      const cut = list.slice(0, max);
-      setPlayers(cut);
-      setImportMsg(
-        `✓ יובאו ${cut.length} משתתפות` + (list.length > max ? ` (בקובץ היו ${list.length} – נלקחו ${max} הראשונות)` : '')
-      );
+      if (filled.length) return setPending({ list, filled });
+      applyImport(list, []);
     } catch (er) {
       setImportMsg('⚠️ ' + (er.message || 'לא הצלחתי לקרוא את הקובץ'));
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
   };
+
+  // החלפת הרשימה, או הוספה בסוף הרשימה הקיימת
+  function applyImport(list, keep) {
+    setPending(null);
+    const all = [...keep, ...list];
+    const cut = all.slice(0, max);
+    setPlayers(cut);
+    setImportMsg(`✓ יובאו ${Math.max(0, cut.length - keep.length)} משתתפות` + (all.length > max ? ` (נכנסו רק ${max} – המקסימום במשחק)` : ''));
+  }
 
   const named = players.filter((p) => p.name.trim()).length;
   const phones = players.map((p) => phoneDigits(p.phone)).filter(Boolean);
@@ -146,6 +152,20 @@ export default function PlayersEditor({ players, setPlayers, max = MAX_PLAYERS }
             </button>
           </span>
           {importMsg && <div style={{ marginTop: 6, fontWeight: 500 }}>{importMsg}</div>}
+          {pending && (
+            <div className="su-ask" style={{ margin: '8px 0 0' }} onClick={(e) => e.stopPropagation()}>
+              בקובץ {pending.list.length} משתתפות, וכבר הוקלדו {pending.filled.length}. מה לעשות?
+              <button className="btn small primary" onClick={() => applyImport(pending.list, [])}>
+                להחליף
+              </button>
+              <button className="btn small" onClick={() => applyImport(pending.list, pending.filled)}>
+                להוסיף בסוף
+              </button>
+              <button className="btn small ghost" onClick={() => setPending(null)}>
+                ביטול
+              </button>
+            </div>
+          )}
         </div>
         <button className="btn gold" onClick={() => fileRef.current.click()}>
           בחירת קובץ

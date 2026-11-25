@@ -38,6 +38,10 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null); // { code, field }
+  const [picked, setPicked] = useState(() => new Set()); // קודים שסומנו לפעולה מרובה
+  const [ask, setAsk] = useState(null); // אישור בתוך הדף: { kind, codes }
+  const [view, setView] = useState('live'); // live | trash
+  const [listErr, setListErr] = useState('');
 
   const load = useCallback(() => adminApi('/api/admin/codes', pw).then((r) => setCodes(r.codes)), [pw]);
   useEffect(() => {
@@ -78,27 +82,50 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
       if (field === 'ai') await adminApi(url, pw, 'PATCH', { aiLimit: d === '' ? null : Number(d) });
       load();
     } catch (er) {
-      alert(er.message);
+      setListErr(er.message);
     }
   };
+
+  // פעולה על כמה קודים (או אחד) – מחיקה לסל, שחזור, מחיקה סופית, השבתה/הפעלה
+  const bulk = async (action, list) => {
+    setAsk(null);
+    setListErr('');
+    try {
+      await adminApi('/api/admin/codes/bulk', pw, 'POST', { action, codes: list });
+      setPicked(new Set());
+      load();
+    } catch (er) {
+      setListErr(er.message);
+    }
+  };
+  const toggle = (code) =>
+    setPicked((p) => {
+      const n = new Set(p);
+      n.has(code) ? n.delete(code) : n.add(code);
+      return n;
+    });
 
   const action = async (c, a) => {
     const url = '/api/admin/codes/' + c.code;
     try {
       if (a === 'toggle') await adminApi(url, pw, 'PATCH', { active: !c.active });
       if (['days', 'games', 'ai', 'players'].includes(a)) return setEditing({ code: c.code, field: a });
-      if (a === 'del') {
-        if (!confirm('למחוק את הקוד ' + c.code + '?')) return;
-        await adminApi(url, pw, 'DELETE');
-      }
+      if (a === 'del') return setAsk({ kind: 'delete', codes: [c.code] });
       load();
     } catch (er) {
-      alert(er.message);
+      setListErr(er.message);
     }
   };
 
   const q = search.trim();
-  const shown = codes.filter((c) => !q || c.code.includes(q) || (c.label || '').includes(q));
+  const live = codes.filter((c) => !c.deleted_at);
+  const trashed = codes.filter((c) => c.deleted_at);
+  const shown = (view === 'trash' ? trashed : live).filter((c) => !q || c.code.includes(q) || (c.label || '').includes(q));
+  const pickedList = [...picked].filter((c) => shown.some((x) => x.code === c));
+  const ASK_TEXT = {
+    delete: (n) => (n === 1 ? 'להעביר את הקוד לסל המחזור? הוא יפסיק לעבוד מיד (אפשר לשחזר 30 יום).' : `להעביר ${n} קודים לסל המחזור? הם יפסיקו לעבוד מיד (אפשר לשחזר 30 יום).`),
+    forever: (n) => (n === 1 ? 'למחוק את הקוד לצמיתות? אי אפשר לשחזר.' : `למחוק ${n} קודים לצמיתות? אי אפשר לשחזר.`),
+  };
 
   return (
     <>
@@ -164,10 +191,69 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
       <div className="su-card">
         <div className="su-card-head">
           <div>
-            <h2>הקודים</h2>
-            <p>{codes.length} קודים</p>
+            <h2>{view === 'trash' ? '🗑️ סל המחזור' : 'הקודים'}</h2>
+            <p>{view === 'trash' ? 'קודים שנמחקו – נשמרים 30 יום ואז נמחקים סופית' : `${live.length} קודים`}</p>
+          </div>
+          <div className="su-seg">
+            <button className={view === 'live' ? 'on' : ''} onClick={() => (setView('live'), setPicked(new Set()))}>
+              קודים ({live.length})
+            </button>
+            <button className={view === 'trash' ? 'on' : ''} onClick={() => (setView('trash'), setPicked(new Set()))}>
+              🗑️ סל מחזור ({trashed.length})
+            </button>
           </div>
         </div>
+        {listErr && <p className="error">⚠️ {listErr}</p>}
+        {ask && (
+          <div className="su-ask">
+            {ASK_TEXT[ask.kind](ask.codes.length)}
+            <button className="btn small danger" onClick={() => bulk(ask.kind, ask.codes)}>
+              כן
+            </button>
+            <button className="btn small ghost" onClick={() => setAsk(null)}>
+              ביטול
+            </button>
+          </div>
+        )}
+        {shown.length > 0 && (
+          <div className="ad-bulk">
+            <label className="ad-check">
+              <input
+                type="checkbox"
+                checked={pickedList.length === shown.length}
+                onChange={(e) => setPicked(e.target.checked ? new Set(shown.map((c) => c.code)) : new Set())}
+              />
+              סימון הכל
+            </label>
+            {pickedList.length > 0 && (
+              <>
+                <b>נבחרו {pickedList.length}:</b>
+                {view === 'live' ? (
+                  <>
+                    <button className="btn small" onClick={() => bulk('disable', pickedList)}>
+                      השבתה
+                    </button>
+                    <button className="btn small" onClick={() => bulk('enable', pickedList)}>
+                      הפעלה
+                    </button>
+                    <button className="btn small danger" onClick={() => setAsk({ kind: 'delete', codes: pickedList })}>
+                      🗑️ מחיקה
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn small" onClick={() => bulk('restore', pickedList)}>
+                      ↩ שחזור
+                    </button>
+                    <button className="btn small danger" onClick={() => setAsk({ kind: 'forever', codes: pickedList })}>
+                      מחיקה לצמיתות
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
         <div className="su-search ad-search">
           <span className="ic">🔍</span>
           <input type="text" placeholder="חיפוש לפי קוד או שם…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -176,8 +262,11 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
           {shown.map((c) => {
             const expired = c.expires_at && c.expires_at < Date.now();
             return (
-              <div key={c.code} className={`ad-code ${c.active && !expired ? '' : 'off'}`}>
-                <div className="c">{c.code}</div>
+              <div key={c.code} className={`ad-code ${c.active && !expired && !c.deleted_at ? '' : 'off'} ${picked.has(c.code) ? 'picked' : ''}`}>
+                <div className="c">
+                  <input type="checkbox" className="ad-pick-box" checked={picked.has(c.code)} onChange={() => toggle(c.code)} />
+                  {c.code}
+                </div>
                 <div>
                   <div className="lbl">{c.label || <span className="muted">ללא שם</span>}</div>
                   <div className="meta">
@@ -200,17 +289,27 @@ export default function CodesPanel({ pw, part = 'create', onCreated }) {
                       onCancel={() => setEditing(null)}
                     />
                   )}
-                  <button className="btn small" onClick={() => action(c, 'days')}>+ימים</button>
-                  <button className="btn small" onClick={() => action(c, 'games')}>משחקים</button>
-                  <button className="btn small" onClick={() => action(c, 'players')}>👥 משתתפות</button>
-                  <button className="btn small" onClick={() => action(c, 'ai')}>📷 מכסה</button>
-                  <button className="btn small" onClick={() => action(c, 'toggle')}>{c.active ? 'השבתה' : 'הפעלה'}</button>
-                  <button className="btn small danger" onClick={() => action(c, 'del')}>מחיקה</button>
+                  {c.deleted_at ? (
+                    <>
+                      <span className="muted">נמחק {fmt(c.deleted_at)}</span>
+                      <button className="btn small" onClick={() => bulk('restore', [c.code])}>↩ שחזור</button>
+                      <button className="btn small danger" onClick={() => setAsk({ kind: 'forever', codes: [c.code] })}>מחיקה לצמיתות</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn small" onClick={() => action(c, 'days')}>+ימים</button>
+                      <button className="btn small" onClick={() => action(c, 'games')}>משחקים</button>
+                      <button className="btn small" onClick={() => action(c, 'players')}>👥 משתתפות</button>
+                      <button className="btn small" onClick={() => action(c, 'ai')}>📷 מכסה</button>
+                      <button className="btn small" onClick={() => action(c, 'toggle')}>{c.active ? 'השבתה' : 'הפעלה'}</button>
+                      <button className="btn small danger" onClick={() => action(c, 'del')}>מחיקה</button>
+                    </>
+                  )}
                 </div>
               </div>
             );
           })}
-          {!shown.length && <div className="su-empty">אין קודים להצגה</div>}
+          {!shown.length && <div className="su-empty">{view === 'trash' ? 'סל המחזור ריק 🎉' : 'אין קודים להצגה'}</div>}
         </div>
       </div>
       )}
