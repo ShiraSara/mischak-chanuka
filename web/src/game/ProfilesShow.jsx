@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { playSound } from '../lib/sound.js';
 import Confetti from './Confetti.jsx';
+import { downloadProfiles } from '../lib/download.js';
 
 const AUTO_MS = 9000;
 
-// "אוקיי, אז מה למדתי עלייך?" – כרטיס אישי לכל משתתפת. עובר לבד, ובסוף חוזר למסך המנצחת.
-export default function ProfilesShow({ gameId, soundOn, onClose }) {
+// "אז מה למדתי עלייך?" – כרטיס אישי לכל משתתפת. עובר לבד, ובסוף חוזר למסך המנצחת.
+export default function ProfilesShow({ gameId, title = '', soundOn, onClose }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [i, setI] = useState(0);
@@ -52,7 +53,7 @@ export default function ProfilesShow({ gameId, soundOn, onClose }) {
   if (!data)
     return (
       <div className="pf-wrap">
-        <div className="q-title">✨ אוקיי, אז מה למדתי עלייך?</div>
+        <div className="q-title">✨ אז מה למדתי עלייך?</div>
         <div className="pf-loading">
           ✍️ כותבות עליכן משהו<span className="dots" />
         </div>
@@ -66,6 +67,9 @@ export default function ProfilesShow({ gameId, soundOn, onClose }) {
           ✨ מה למדתי עלייך? · {i + 1} מתוך {list.length}
         </span>
         <span className="grow" />
+        <button className="btn small ghost pf-btn" onClick={() => downloadProfiles(list, title)}>
+          ⬇️ הורדת הסיכום
+        </button>
         <button className="btn small ghost pf-btn" onClick={() => setAuto(!auto)}>
           {auto ? '⏸ עצירה' : '▶ אוטומטי'}
         </button>

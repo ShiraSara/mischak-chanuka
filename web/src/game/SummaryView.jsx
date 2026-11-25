@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import ProfilesShow from './ProfilesShow.jsx';
 import Confetti from './Confetti.jsx';
 import { playSound } from '../lib/sound.js';
-import { downloadResults } from '../lib/download.js';
+import { downloadProfiles } from '../lib/download.js';
+import { api } from '../lib/api.js';
 
 const TO_PROFILES_SEC = 10; // כמה שניות המנצחת על המסך לפני "מה למדתי עלייך?"
 
-// סוף המשחק: המנצחת בעיגול, הורדת תוצאות, ואחרי כמה שניות – מעבר לבד לכרטיסים האישיים
+// סוף המשחק: המנצחת בעיגול, הורדת הסיכום של ה-AI, ואחרי כמה שניות – מעבר לבד לכרטיסים האישיים
 export default function SummaryView({ state, soundOn }) {
   const profilesOn = state.game.settings.profiles !== false;
   const [stage, setStage] = useState('winner'); // winner | profiles
@@ -29,6 +30,7 @@ export default function SummaryView({ state, soundOn }) {
     return (
       <ProfilesShow
         gameId={state.game.id}
+        title={state.game.settings.title}
         soundOn={soundOn}
         onClose={() => {
           setSeen(true);
@@ -74,12 +76,21 @@ export default function SummaryView({ state, soundOn }) {
       )}
 
       <div className="end-actions">
-        <button className="btn gold" onClick={() => downloadResults(state)}>
-          ⬇️ הורדת התוצאות
-        </button>
+        {profilesOn && seen && (
+          <button
+            className="btn gold"
+            onClick={async () => {
+              // הכרטיסים כבר נכתבו ונשמרו – מקבלים אותם שוב מהשרת בלי לפנות שוב ל-AI
+              const d = await api(`/api/games/${state.game.id}/profiles`, { method: 'POST', body: {} });
+              downloadProfiles(d.profiles, state.game.settings.title);
+            }}
+          >
+            ⬇️ הורדת הסיכום
+          </button>
+        )}
         {profilesOn && (
           <button className="btn primary" onClick={() => setStage('profiles')}>
-            ✨ אוקיי, אז מה למדתי עלייך?
+            ✨ אז מה למדתי עלייך?
           </button>
         )}
       </div>
