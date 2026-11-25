@@ -27,5 +27,20 @@ export function setTheme(id) {
   window.dispatchEvent(new CustomEvent('themechange', { detail: id }));
 }
 
-// מפעילים את הערכה השמורה כבר בטעינת הדף
+// תצוגה בהירה / כהה
+const MODE_KEY = 'seker_mode';
+export function getMode() {
+  return localStorage.getItem(MODE_KEY) === 'dark' ? 'dark' : 'light';
+}
+export function applyMode(m) {
+  document.documentElement.dataset.mode = m;
+}
+export function setMode(m) {
+  localStorage.setItem(MODE_KEY, m);
+  applyMode(m);
+  window.dispatchEvent(new CustomEvent('modechange', { detail: m }));
+}
+
+// מפעילים את הערכה והתצוגה השמורות כבר בטעינת הדף
 applyTheme(getTheme());
+applyMode(getMode());
