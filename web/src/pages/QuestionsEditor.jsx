@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { api, withId } from '../lib/api.js';
 import ImportDialog from './ImportDialog.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
+import ListPaste from '../lib/ListPaste.jsx';
 import { FEATURES } from '../lib/features.js';
 
 const NO_TOPIC = 'כללי';
@@ -16,6 +17,7 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
   const [askPick, setAskPick] = useState(null); // גרסה שרוצים לעבור אליה (מחכה לאישור)
   const [askDelete, setAskDelete] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [pasting, setPasting] = useState(false);
   const [drag, setDrag] = useState(null);
   const [dropOn, setDropOn] = useState(null);
 
@@ -173,10 +175,28 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
             📥 ייבוא מתמונה / טקסט
           </button>
         )}
+        <button className="btn" onClick={() => setPasting(!pasting)}>
+          📋 הוספת רשימה
+        </button>
         <button className="btn primary" onClick={() => add()}>
           + שאלה חדשה
         </button>
       </div>
+
+      {pasting && (
+        <ListPaste
+          title="📋 הוספת רשימת שאלות"
+          topicInput
+          onCancel={() => setPasting(false)}
+          onAdd={(items, topic) => {
+            setSearch('');
+            setFilter('all');
+            setQuestions([...items.map((q) => withId({ ...q, topic, on: true, edited: true })), ...questions]);
+            setPasting(false);
+            setMsg(`✓ נוספו ${items.length} שאלות לראש הרשימה – וכבר מסומנות למשחק`);
+          }}
+        />
+      )}
 
       <div className="su-qtools">
         <button className="btn small" onClick={() => setAll(true)}>סימון הכל</button>

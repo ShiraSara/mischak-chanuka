@@ -3,6 +3,7 @@ import { adminApi } from './adminApi.js';
 import { withId } from '../lib/api.js';
 import InlineInput from './InlineInput.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
+import ListPaste from '../lib/ListPaste.jsx';
 
 const NO_TOPIC = 'כללי';
 const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
@@ -10,19 +11,6 @@ const topicValue = (t) => (t === NO_TOPIC ? '' : t);
 const norm = (s) => String(s || '').replace(/[?!.,"'״׳\-–]/g, ' ').replace(/\s+/g, ' ').trim();
 const incomplete = (q) => !q.text.trim() || (q.type === 'options' && q.options.filter((o) => o.trim()).length < 2);
 const SAVE_DELAY = 800;
-
-// "שורה לכל שאלה". אפשר גם: שאלה | תשובה | תשובה  → שאלה עם תשובות קבועות
-function parseLines(text, topic) {
-  return text
-    .split('\n')
-    .map((l) => l.replace(/^\s*(?:[-•*▪●]|\d+[.)])\s*/, '').trim())
-    .filter(Boolean)
-    .map((l) => {
-      const parts = l.split('|').map((x) => x.trim()).filter(Boolean);
-      const [text, ...opts] = parts;
-      return withId({ text, type: opts.length >= 2 ? 'options' : 'names', options: opts.length >= 2 ? opts : [], topic: topicValue(topic) });
-    });
-}
 
 // ניהול מאגרי השאלות: מאגרים ← נושאים ← שאלות. כל שינוי נשמר לבד.
 export default function BankPanel({ pw }) {
@@ -295,8 +283,8 @@ export default function BankPanel({ pw }) {
     openBank(b[0]?.id ?? null);
   };
 
-  const pasteAdd = (text) => {
-    const list = parseLines(text, current);
+  const pasteAdd = (items) => {
+    const list = items.map((q) => withId({ ...q, topic: topicValue(current) }));
     setPasting(false);
     if (!list.length) return;
     setQs(insertAtTopicEnd(qs, list, current));
@@ -496,14 +484,14 @@ export default function BankPanel({ pw }) {
                       </div>
 
                       {pasting ? (
-                        <PasteBox topic={current} onAdd={pasteAdd} onCancel={() => setPasting(false)} />
+                        <ListPaste title={`📋 הוספת רשימת שאלות לנושא "${current}"`} onAdd={pasteAdd} onCancel={() => setPasting(false)} />
                       ) : (
                         <div className="bp-add">
                           <button className="btn primary" onClick={addQuestion}>
                             + שאלה
                           </button>
                           <button className="btn" onClick={() => setPasting(true)}>
-                            📋 הדבקת כמה שאלות
+                            📋 הוספת רשימת שאלות
                           </button>
                         </div>
                       )}
@@ -549,28 +537,6 @@ function SaveBadge({ status, drafts }) {
     <div className="bp-status">
       {text && <span className={`bp-save ${cls}`}>{text}</span>}
       {drafts > 0 && <span className="bp-save draft">✏️ {drafts === 1 ? 'שאלה אחת לא גמורה – לא תישמר עד שתושלם' : `${drafts} שאלות לא גמורות – לא יישמרו עד שיושלמו`}</span>}
-    </div>
-  );
-}
-
-function PasteBox({ topic, onAdd, onCancel }) {
-  const [text, setText] = useState('');
-  const n = parseLines(text, topic).length;
-  return (
-    <div className="bp-paste">
-      <b>📋 הדבקת שאלות לנושא "{topic}"</b>
-      <p className="muted">
-        שורה לכל שאלה. אפשר להדביק גם רשימה ממוספרת. לשאלה עם תשובות קבועות: <code>שאלה | תשובה | תשובה</code>
-      </p>
-      <textarea autoFocus rows={7} value={text} placeholder={'מי הכי מצחיקה?\nמי תמיד מאחרת?\nקפה או תה? | קפה | תה'} onChange={(e) => setText(e.target.value)} />
-      <div className="row">
-        <button className="btn primary" disabled={!n} onClick={() => onAdd(text)}>
-          הוספת {n || ''} שאלות
-        </button>
-        <button className="btn ghost" onClick={onCancel}>
-          ביטול
-        </button>
-      </div>
     </div>
   );
 }
