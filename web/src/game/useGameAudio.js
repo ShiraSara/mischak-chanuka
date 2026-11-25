@@ -79,7 +79,7 @@ export function useGameAudio({ view, upcoming, shownScene, curtainClosed, transi
 
   // מתח: המנגינה מאיצה לקראת סוף הטיימר
   const qStart = view?.game.qStartedAt;
-  const timerSec = view?.game.settings.timerSec;
+  const timerSec = view?.game.timerSec ?? view?.game.settings.timerSec;
   const pausedAt = view?.game.pausedAt;
   useEffect(() => {
     if (phase !== 'question' || !timerSec) return music.setTension(0.15);

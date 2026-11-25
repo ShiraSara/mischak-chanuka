@@ -78,7 +78,11 @@ function cleanQuestions(list) {
         .map((o) => String(o || '').trim().slice(0, 80))
         .filter(Boolean)
         .slice(0, type === 'options' ? MAX_PLAYERS : MAX_EXTRA);
-      return { text: String(q.text || '').trim().slice(0, 300), type, options, topic: String(q.topic || '').trim().slice(0, 60) };
+      const out = { text: String(q.text || '').trim().slice(0, 300), type, options, topic: String(q.topic || '').trim().slice(0, 60) };
+      // זמנים אישיים לשאלה (לא חובה): כמה זמן לשאלה, כמה זמן לתוצאות
+      if (q.timerSec != null && q.timerSec !== '') out.timerSec = Math.max(0, Math.min(600, Number(q.timerSec) || 0));
+      if (q.resultsSec != null && q.resultsSec !== '') out.resultsSec = Math.max(2, Math.min(60, Number(q.resultsSec) || 5));
+      return out;
     })
     .filter((q) => q.text && (q.type === 'names' || q.options.length >= 2));
 }
@@ -203,7 +207,7 @@ async function gameState(env, g) {
   // כשהטיימר נגמר – תמיד עוברים לתוצאות. "כולן הצביעו" – רק במשחק אוטומטי / חשיפה אוטומטית.
   if (g.phase === 'question' && !g.paused_at) {
     const allVoted = (g.settings.autoReveal || auto) && players.length > 0 && votes.length >= players.length;
-    const timeUp = g.settings.timerSec > 0 && now() - g.q_started_at > g.settings.timerSec * 1000 + 1500;
+    const timeUp = qTimer(g) > 0 && now() - g.q_started_at > qTimer(g) * 1000 + 1500;
     if ((allVoted || timeUp) && (await claimPhase(env, g))) {
       await setPhase(env, g, { phase: 'results' });
     }
@@ -232,6 +236,7 @@ async function gameState(env, g) {
       qIndex: g.q_index,
       total: g.questions.length,
       qStartedAt: g.q_started_at,
+      timerSec: g.q_index >= 0 ? qTimer(g) : Number(g.settings.timerSec) || 0, // זמן השאלה הנוכחית
       pausedAt: g.paused_at || null,
       phaseAt: g.updated_at,
       autoAt: g.settings.autoPlay && !g.paused_at && (g.phase === 'results' || g.phase === 'board') ? g.updated_at + autoHoldMs(g) : null,
@@ -294,7 +299,6 @@ async function computeScores(env, g, players, uptoIndex) {
   const { results: rounds } = await env.DB.prepare('SELECT q_index, started_at, players FROM rounds WHERE game_id = ?').bind(g.id).all();
   const startOf = new Map(rounds.map((r) => [r.q_index, r.started_at]));
   const uptoOf = new Map(rounds.map((r) => [r.q_index, r.players]));
-  const limitMs = (g.settings.timerSec || 30) * 1000;
   const score = new Map(players.map((p) => [p.num, { num: p.num, name: p.name, points: 0, hits: 0, times: [] }]));
 
   for (let i = 0; i <= uptoIndex; i++) {
@@ -303,6 +307,7 @@ async function computeScores(env, g, players, uptoIndex) {
     const t = tally(optionsFor(g.questions[i], players, uptoOf.get(i)), qv);
     const top = t[0]?.count || 0;
     const winners = new Set(t.filter((o) => o.count === top).map((o) => o.n));
+    const limitMs = (qTimer(g, i) || 30) * 1000;
     const start = startOf.get(i);
     for (const v of qv) {
       const s = score.get(v.num);
@@ -342,9 +347,13 @@ async function roundPlayers(env, gameId) {
   return new Map(results.map((r) => [r.q_index, r.players]));
 }
 
+// זמן השאלה / התוצאות – של השאלה עצמה אם הוגדר לה, אחרת של המשחק
+const qTimer = (g, i = g.q_index) => g.questions[i]?.timerSec ?? (Number(g.settings.timerSec) || 0);
+const qResults = (g, i = g.q_index) => g.questions[i]?.resultsSec ?? (Number(g.settings.resultsSec) || 8);
+
 // כמה זמן להשאיר תוצאות / טבלת מובילות במצב אוטומטי
 function autoHoldMs(g) {
-  const sec = Number(g.settings.resultsSec) || 8;
+  const sec = g.phase === 'board' ? Number(g.settings.resultsSec) || 8 : qResults(g);
   return (g.phase === 'board' ? sec + 6 : sec) * 1000;
 }
 

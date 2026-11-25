@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { api, withId } from '../lib/api.js';
+import { api, shuffle, withId } from '../lib/api.js';
+import { countForMinutes, estimateMinutes, fmtMinutes } from '../lib/gameLength.js';
 import ImportDialog from './ImportDialog.jsx';
 import EmojiButton from '../lib/EmojiButton.jsx';
 import ListPaste from '../lib/ListPaste.jsx';
@@ -9,7 +10,7 @@ const NO_TOPIC = 'כללי';
 const topicOf = (q) => (q.topic || '').trim() || NO_TOPIC;
 
 // שלב 2: בחירת גרסה, בחירת שאלות לפי נושאים, עריכה, סידור בגרירה וסל מחזור
-export default function QuestionsEditor({ questions, setQuestions, trash, setTrash, banks, bankId, onPickBank, onBanksChanged, ai, setAi }) {
+export default function QuestionsEditor({ questions, setQuestions, trash, setTrash, settings = {}, banks, bankId, onPickBank, onBanksChanged, ai, setAi }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | on
   const [msg, setMsg] = useState('');
@@ -18,6 +19,24 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
   const [askDelete, setAskDelete] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [pasting, setPasting] = useState(false);
+  const [length, setLength] = useState({ minutes: 0, count: null }); // 0 = כל השאלות שסימנתי
+  const [topicTimes, setTopicTimes] = useState(null); // נושא שפתוחים בו הזמנים
+
+  // משך המשחק: "כל השאלות" או זמן – המערכת מסמנת באקראי כמה שאלות שנכנסות בזמן
+  const pickForTime = (minutes, count) => {
+    if (!minutes) {
+      setLength({ minutes: 0, count: null });
+      return setQuestions(questions.map((q) => ({ ...q, on: !!q.text.trim() })));
+    }
+    const pool = questions.filter((q) => q.text.trim()).map((q) => q.id);
+    const want = Math.max(1, count ?? countForMinutes(minutes, settings).count);
+    const n = Math.min(want, pool.length);
+    const chosen = new Set(shuffle(pool).slice(0, n));
+    setQuestions(questions.map((q) => ({ ...q, on: chosen.has(q.id) })));
+    setLength({ minutes, count: n, short: want > pool.length ? want : 0 });
+  };
+  const setTopicTime = (topic, patch) =>
+    setQuestions(questions.map((q) => (topicOf(q) === topic ? { ...q, ...patch, edited: true } : q)));
   const [drag, setDrag] = useState(null);
   const [dropOn, setDropOn] = useState(null);
 
@@ -156,6 +175,35 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
         </div>
       )}
 
+      <div className="su-length">
+        <b>⏱ כמה זמן משחקים?</b>
+        <div className="su-seg">
+          {[[0, '📚 כל השאלות'], [30, '30 דק׳'], [60, 'שעה'], [90, 'שעה וחצי']].map(([m, l]) => (
+            <button key={m} className={length.minutes === m ? 'on' : ''} onClick={() => pickForTime(m)}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {length.minutes > 0 && (
+          <span className="su-length-n">
+            🎲 נבחרו באקראי
+            <input
+              type="number"
+              min="1"
+              value={length.count ?? ''}
+              title="אפשר לשנות את מספר השאלות"
+              onChange={(e) => e.target.value && pickForTime(length.minutes, Number(e.target.value))}
+            />
+            שאלות
+            {length.short > 0 && <small className="muted"> (בגרסה יש רק {length.count} – לזמן הזה צריך כ-{length.short})</small>}
+          </span>
+        )}
+        <span className="muted su-length-est">
+          משך משוער: {fmtMinutes(estimateMinutes(questions.filter((q) => q.on && q.text.trim()), settings))}
+          {length.minutes > 0 && ` (כ-${countForMinutes(length.minutes, settings).perSec} שניות לשאלה)`}
+        </span>
+      </div>
+
       <div className="su-qbar">
         <div className="su-search">
           <span className="ic">🔍</span>
@@ -250,14 +298,27 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
                 <button className="btn small" onClick={() => setAll(on < inTopic.length, t)}>
                   {on < inTopic.length ? 'סימון כל הנושא' : 'ביטול הנושא'}
                 </button>
+                <button className="btn small ghost" onClick={() => setTopicTimes(topicTimes === t ? null : t)} title="זמנים לכל השאלות בנושא">
+                  ⏱ זמנים לנושא
+                </button>
                 <button className="btn small ghost" onClick={() => add(t)}>
                   + שאלה בנושא
                 </button>
               </div>
+              {topicTimes === t && (
+                <TimesPanel
+                  title={`⏱ זמנים לכל השאלות בנושא "${t}"`}
+                  q={inTopic.every((q) => q.timerSec === inTopic[0].timerSec && q.resultsSec === inTopic[0].resultsSec) ? inTopic[0] : {}}
+                  settings={settings}
+                  onChange={(patch) => setTopicTime(t, patch)}
+                  onClose={() => setTopicTimes(null)}
+                />
+              )}
               {shown.map((q) => (
                 <QuestionRow
                   key={q.id}
                   q={q}
+                  settings={settings}
                   canDrag={canDrag}
                   dragging={drag === q.id}
                   dropping={dropOn === 'q:' + q.id}
@@ -314,8 +375,9 @@ export default function QuestionsEditor({ questions, setQuestions, trash, setTra
   );
 }
 
-function QuestionRow({ q, canDrag, dragging, dropping, onDragStart, onDragEnd, dropProps, onChange, onRemove }) {
+function QuestionRow({ q, settings, canDrag, dragging, dropping, onDragStart, onDragEnd, dropProps, onChange, onRemove }) {
   const [draft, setDraft] = useState('');
+  const [times, setTimes] = useState(false);
   const textRef = useRef(null);
 
   const addOption = () => {
@@ -364,7 +426,17 @@ function QuestionRow({ q, canDrag, dragging, dropping, onDragStart, onDragEnd, d
             onChange={(e) => onChange({ text: e.target.value, isNew: false })}
           />
           <EmojiButton inputRef={textRef} value={q.text} onChange={(text) => onChange({ text, isNew: false })} />
+          <button className={`su-times-btn ${q.timerSec != null || q.resultsSec != null ? 'set' : ''}`} title="זמנים לשאלה הזו" onClick={() => setTimes(!times)}>
+            ⚙️
+          </button>
         </div>
+        {(q.timerSec != null || q.resultsSec != null) && !times && (
+          <div className="su-times-badge" onClick={() => setTimes(true)}>
+            {q.timerSec != null && <span>⏱ {q.timerSec ? `${q.timerSec} שנ׳` : 'בלי טיימר'}</span>}
+            {q.resultsSec != null && <span>📊 תוצאות {q.resultsSec} שנ׳</span>}
+          </div>
+        )}
+        {times && <TimesPanel title="⏱ זמנים לשאלה הזו" q={q} settings={settings} onChange={onChange} onClose={() => setTimes(false)} />}
         <div className="su-q-meta">
           <button className={`su-type ${q.type === 'options' ? 'opt' : ''}`} onClick={toggleType} title="לחצי להחלפה">
             {q.type === 'names' ? '👥 התשובות: שמות המשתתפות' : '🔘 התשובות: אפשרויות קבועות'}
@@ -403,6 +475,41 @@ function QuestionRow({ q, canDrag, dragging, dropping, onDragStart, onDragEnd, d
       <button className="su-x" title="הורדת השאלה (אפשר לשחזר מסל המחזור)" onClick={onRemove}>
         🗑️
       </button>
+    </div>
+  );
+}
+
+// בחירת זמן לשאלה / לנושא: "רגיל" = לפי הגדרות המשחק
+const Q_TIMES = [0, 10, 15, 20, 30, 45, 60, 90];
+const R_TIMES = [3, 5, 8, 12, 20];
+function TimesPanel({ title, q, settings, onChange, onClose }) {
+  const chip = (cur, v, label, patch) => (
+    <button key={label} className={cur === v ? 'on' : ''} onClick={() => onChange(patch)}>
+      {label}
+    </button>
+  );
+  return (
+    <div className="su-times">
+      <div className="su-times-head">
+        <b>{title}</b>
+        <button className="btn small ghost" onClick={onClose}>
+          ✓ סגירה
+        </button>
+      </div>
+      <div className="su-times-row">
+        <span>כמה זמן לשאלה</span>
+        <div className="su-timer">
+          {chip(q.timerSec, undefined, `רגיל (${settings.timerSec ? settings.timerSec + ' שנ׳' : 'בלי'})`, { timerSec: undefined })}
+          {Q_TIMES.map((t) => chip(q.timerSec, t, t ? `${t}` : 'בלי', { timerSec: t }))}
+        </div>
+      </div>
+      <div className="su-times-row">
+        <span>כמה זמן לתוצאות</span>
+        <div className="su-timer">
+          {chip(q.resultsSec, undefined, `רגיל (${settings.resultsSec || 5} שנ׳)`, { resultsSec: undefined })}
+          {R_TIMES.map((t) => chip(q.resultsSec, t, `${t}`, { resultsSec: t }))}
+        </div>
+      </div>
     </div>
   );
 }

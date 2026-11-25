@@ -1,5 +1,18 @@
 // צלילים שנוצרים בדפדפן, בלי קבצים
 let ctx = null;
+let out = null; // מגביר משותף לכל הצלילים
+const SFX_BOOST = 2.4;
+function dest() {
+  if (out) return out;
+  const g = ctx.createGain();
+  g.gain.value = SFX_BOOST;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -14;
+  comp.ratio.value = 6;
+  g.connect(comp).connect(ctx.destination);
+  out = g;
+  return out;
+}
 
 export function playSound(kind) {
   try {
@@ -18,7 +31,7 @@ export function playSound(kind) {
       f.Q.value = 8;
       g.gain.setValueAtTime(vol, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      o.connect(f).connect(g).connect(ctx.destination);
+      o.connect(f).connect(g).connect(dest());
       o.start(t);
       o.stop(t + 0.05);
     };
@@ -29,7 +42,7 @@ export function playSound(kind) {
       o.frequency.value = freq;
       g.gain.setValueAtTime(vol, t + start);
       g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
-      o.connect(g).connect(ctx.destination);
+      o.connect(g).connect(dest());
       o.start(t + start);
       o.stop(t + start + dur);
     };

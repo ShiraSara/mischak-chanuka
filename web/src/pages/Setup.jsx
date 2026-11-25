@@ -85,7 +85,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
         method: 'POST',
         body: {
           players: filled,
-          questions: qs.map(({ text, type, options, topic }) => ({ text, type, options, topic })),
+          questions: qs.map(({ text, type, options, topic, timerSec, resultsSec }) => ({ text, type, options, topic, timerSec, resultsSec })),
           settings: {
             timerSec: Number(settings.timerSec) || 0,
             allowSelfVote: settings.allowSelfVote,
@@ -164,6 +164,7 @@ export default function Setup({ me, hasOpenGame, onResume, onCreated, onLogout }
             setQuestions={setQuestions}
             trash={trash}
             setTrash={setTrash}
+            settings={settings}
             banks={banks}
             bankId={bankId}
             onPickBank={pickBank}

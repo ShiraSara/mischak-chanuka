@@ -278,3 +278,20 @@
 .list-paste-preview { display: flex; flex-direction: column; gap: 3px; font-size: .92rem; }
 .list-paste-preview .pv { font-weight: 700; padding-inline-start: 10px; border-inline-start: 3px solid var(--c1); }
 .bp-main .list-paste { margin-top: 14px; }
+
+/* משך המשחק */
+.su-length { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin: 0 0 16px; border: 2.5px dashed var(--edge); border-radius: 16px; }
+.su-length-n { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; }
+.su-length-n input { width: 70px !important; padding: 4px 8px !important; }
+.su-length-est { font-size: .9rem; }
+/* זמנים לשאלה / לנושא */
+.su-times-btn { flex: none; border: 2px solid transparent; background: transparent; font-size: 1.05rem; border-radius: 10px; cursor: pointer; padding: 2px 6px; opacity: .45; }
+.su-times-btn:hover, .su-times-btn.set { opacity: 1; }
+.su-times-btn.set { border-color: var(--c1); }
+.su-times-badge { display: inline-flex; gap: 8px; margin: 4px 8px 0; cursor: pointer; }
+.su-times-badge span { font-size: .8rem; font-weight: 800; background: color-mix(in srgb, var(--c1) 18%, var(--surface)); border-radius: 8px; padding: 1px 8px; }
+.su-times { margin: 8px 0 4px; padding: 10px 12px; border: 2px dashed var(--edge); border-radius: 14px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.su-times-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.su-times-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.su-times-row > span { font-weight: 700; font-size: .9rem; min-width: 110px; }
+.su-times .su-timer button { padding: 4px 9px; min-width: 38px; font-size: .85rem; }

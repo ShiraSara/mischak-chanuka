@@ -9,7 +9,7 @@ function Caption({ game, votes, total, clockOffset }) {
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
   }, []);
-  const sec = game.settings.timerSec;
+  const sec = game.timerSec ?? game.settings.timerSec;
   const at = game.pausedAt ?? now + clockOffset; // בעצירה – הזמן קפוא
   const leftRatio = sec ? Math.max(0, game.qStartedAt + sec * 1000 - at) / (sec * 1000) : null;
   const text = questionCaption({ leftRatio, votes, total, qIndex: game.qIndex });
@@ -26,8 +26,8 @@ export default function QuestionView({ state, clockOffset, soundOn }) {
         <div className="q-counter">
           שאלה {g.qIndex + 1} מתוך {g.total}
         </div>
-        {g.settings.timerSec > 0 && (
-          <TimerRing key={g.qIndex + '-' + g.qStartedAt} startedAt={g.qStartedAt} seconds={g.settings.timerSec} pausedAt={g.pausedAt} clockOffset={clockOffset} soundOn={soundOn} />
+        {(g.timerSec ?? g.settings.timerSec) > 0 && (
+          <TimerRing key={g.qIndex + '-' + g.qStartedAt} startedAt={g.qStartedAt} seconds={g.timerSec ?? g.settings.timerSec} pausedAt={g.pausedAt} clockOffset={clockOffset} soundOn={soundOn} />
         )}
       </div>
       <div className="q-title">{q.text}</div>

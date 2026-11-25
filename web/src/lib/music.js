@@ -1,4 +1,5 @@
 // מנגינת רקע שנוצרת בדפדפן (בלי קבצי מוזיקה). כל המנגינות מקוריות.
+const BOOST = 2.2; // עוצמת המנגינה (הייתה חלשה מדי)
 // מצבים: lobby – רגוע · question – לפי הסגנון שנבחר, מאיץ לקראת סוף הטיימר · results – חגיגי · roll – תופים
 export const MUSIC_STYLES = [
   { id: 'quiz', name: 'חידון טלוויזיה', icon: '📺' },
@@ -29,10 +30,17 @@ class Music {
     }
     const c = this.ctx;
     this.master = c.createGain();
-    this.master.gain.value = this.volume * 0.6;
+    this.master.gain.value = this.volume * BOOST;
     this.duck = c.createGain();
     this.bus = c.createGain();
-    this.bus.connect(this.duck).connect(this.master).connect(c.destination);
+    // מגביר + "מכווץ" – חזק יותר בלי שהצליל יישבר בשיאים
+    this.comp = c.createDynamicsCompressor();
+    this.comp.threshold.value = -18;
+    this.comp.knee.value = 12;
+    this.comp.ratio.value = 4;
+    this.comp.attack.value = 0.005;
+    this.comp.release.value = 0.2;
+    this.bus.connect(this.duck).connect(this.master).connect(this.comp).connect(c.destination);
     const len = c.sampleRate;
     this.noise = c.createBuffer(1, len, c.sampleRate);
     const d = this.noise.getChannelData(0);
@@ -47,7 +55,7 @@ class Music {
 
   setVolume(v) {
     this.volume = v;
-    if (this.master) this.master.gain.setTargetAtTime(v * 0.6, this.ctx.currentTime, 0.1);
+    if (this.master) this.master.gain.setTargetAtTime(v * BOOST, this.ctx.currentTime, 0.1);
   }
 
   setStyle(s) {
@@ -59,7 +67,7 @@ class Music {
   }
 
   setDucked(on) {
-    if (this.duck) this.duck.gain.setTargetAtTime(on ? 0.22 : 1, this.ctx.currentTime, 0.15);
+    if (this.duck) this.duck.gain.setTargetAtTime(on ? 0.4 : 1, this.ctx.currentTime, 0.15);
   }
 
   setMode(mode, force = false) {
