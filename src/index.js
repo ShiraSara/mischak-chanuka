@@ -750,11 +750,13 @@ async function hostRoutes(req, env, path, method, c) {
     // "מי את בעצם?" – נוצר פעם אחת ונשמר (אפשר לבקש מחדש)
     if (m[2] === '/profiles' && method === 'POST') {
       const { regenerate } = await body(req);
-      const cached = g.profiles ? JSON.parse(g.profiles) : null;
-      if (cached && !regenerate && cached.ai) return json(cached);
       const players = await loadPlayers(env, g.id);
       const { results: votes } = await env.DB.prepare('SELECT q_index, num, choice FROM votes WHERE game_id = ?').bind(g.id).all();
-      const out = await makeProfiles(env, g, players, votes);
+      // "חתימה" של ההצבעות – אם מישהי שינתה הצבעה אחרי שהכרטיסים נכתבו מראש, כותבים מחדש
+      const sig = `${votes.length}:${votes.reduce((t, v) => t + (v.q_index + 1) * 131 + v.num * 17 + v.choice, 0)}`;
+      const cached = g.profiles ? JSON.parse(g.profiles) : null;
+      if (cached && !regenerate && cached.ai && (!cached.sig || cached.sig === sig)) return json(cached);
+      const out = { ...(await makeProfiles(env, g, players, votes)), sig };
       // שומרים רק תוצאה של AI; אם נפל – ננסה שוב בפעם הבאה
       if (out.ai) await env.DB.prepare('UPDATE games SET profiles = ? WHERE id = ?').bind(JSON.stringify(out), g.id).run();
       return json(out);
