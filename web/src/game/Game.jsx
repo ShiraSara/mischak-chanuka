@@ -138,13 +138,12 @@ export default function Game({ gameId, me, onExit }) {
   const view = shownScene && shownScene !== 'lobby' ? snapRef.current : null;
   const transitioning = !!state && sceneOf(state) !== shownScene; // הווילון באמצע מעבר לסצנה הבאה
   // כתיבה מראש של "מה למדתי עלייך?" ברקע, כדי שבסוף זה יהיה מוכן מיד:
-  // טיוטה בתוצאות של השאלה השלישית מהסוף, גרסה סופית בתוצאות של השאלה האחרונה, ושוב אם סיימו מוקדם
+  // בתוצאות של השאלה האחרונה, ושוב בסוף המשחק אם משהו השתנה (או אם סיימו מוקדם)
   const prefetched = useRef(new Set());
   useEffect(() => {
     const g = state?.game;
     if (!g || g.settings.profiles === false) return;
     let key = null;
-    if (g.phase === 'results' && g.total >= 4 && g.qIndex === g.total - 3) key = 'draft';
     if (g.phase === 'results' && g.qIndex === g.total - 1) key = 'last';
     if (g.phase === 'ended') key = 'ended';
     if (!key || prefetched.current.has(key)) return;

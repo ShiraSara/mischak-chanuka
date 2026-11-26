@@ -7,7 +7,7 @@ const BUSY_COOLDOWN_MS = 5 * 60_000; // דגם שהיה עמוס – מנסים 
 const busyUntil = new Map();
 const markBusy = (model) => busyUntil.set(model, Date.now() + BUSY_COOLDOWN_MS);
 const isBusy = (model) => (busyUntil.get(model) || 0) > Date.now();
-const MAX_MODELS = 4; // הראשי + עד 3 חלופיים
+const MAX_MODELS = 6; // הראשי + עד 5 חלופיים (לכל דגם מכסה יומית נפרדת במסלול החינמי)
 
 // ---------- גילוי הדגמים הזמינים למפתח ----------
 // שואלים את גוגל אילו דגמים זמינים (ולא מנחשים שמות), ושומרים לשעה.
@@ -137,6 +137,12 @@ export async function generateJson(env, { parts, system, schema, maxOutputTokens
           markBusy(model);
         }
         if (error.status === 404) continue outer; // דגם שלא זמין בחשבון – לחלופי
+        // נגמרה המכסה של הדגם הזה – לא מנסים שוב (זה רק מבזבז עוד מכסה), עוברים לדגם חלופי עם מכסה משלו
+        if (error.status === 429) {
+          // מכסה יומית שנגמרה – הדגם הזה לא יעבוד עד מחר, אז לא מנסים אותו שוב היום
+          if (/per day|perday|daily/i.test(error.message)) busyUntil.set(model, Date.now() + 12 * 3600_000);
+          continue outer;
+        }
         // דגם שלא מאפשר לכבות "חשיבה" – מנסים אותו שוב בלי ההגדרה
         if (error.status === 400 && config.thinkingConfig && /think/i.test(error.message)) {
           delete config.thinkingConfig;
@@ -151,7 +157,7 @@ export async function generateJson(env, { parts, system, schema, maxOutputTokens
 
   if (!response) {
     const error = busyError || lastError;
-    const detail = error ? ` (קוד ${error.status}: ${String(error.message || '').replace(/\s+/g, ' ').slice(0, 160)})` : '';
+    const detail = error ? ` (קוד ${error.status}: ${String(error.message || '').replace(/\s+/g, ' ').slice(0, 300)})` : '';
     if (!error || error.status >= 500) throw new AiError('הבינה המלאכותית של גוגל עמוסה כרגע – נסי שוב בעוד דקה-שתיים' + detail);
     if (error.status === 401 || error.status === 403 || (error.status === 400 && /api key/i.test(error.message)))
       throw new AiError('מפתח ה-API לא תקין – צריך לבדוק אותו בהגדרות' + detail);

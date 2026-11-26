@@ -63,7 +63,7 @@ const SCHEMA = {
   required: ['profiles'],
 };
 
-const CHUNK = 8; // עד 8 משתתפות בבקשה (15 משתתפות = 2 בקשות במקביל)
+const CHUNK = 50; // בקשה אחת לכל המשתתפות (מכסת הבקשות לדקה במסלול החינמי קטנה)
 
 export async function makeProfiles(env, game, players, votes, { noAi = false } = {}) {
   const facts = buildFacts(game, players, votes);

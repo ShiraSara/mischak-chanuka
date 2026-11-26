@@ -852,12 +852,15 @@ async function hostRoutes(req, env, path, method, c, ctx) {
       }
       ctx?.waitUntil(job.promise.catch(() => {})); // ממשיך לכתוב גם אחרי שהתשובה נשלחה
       if (prefetch) return json({ queued: true });
-
       // מחכים עד PROFILE_WAIT_MS לגרסה המעודכנת; אחרת – הטיוטה האחרונה, ואם אין – משפטי גיבוי
-      const fresh = await Promise.race([job.promise.catch(() => null), new Promise((r) => setTimeout(() => r(null), PROFILE_WAIT_MS))]);
-      if (fresh) return json(fresh);
-      if (cached?.ai) return json({ ...cached, draft: true });
-      return json({ ...(await makeProfiles(env, g, players, votes, { noAi: true })), draft: true });
+      const fresh = await Promise.race([
+        job.promise.catch((e) => (console.error('profiles failed', e), { failed: String(e?.message || e) })),
+        new Promise((r) => setTimeout(() => r(null), PROFILE_WAIT_MS)),
+      ]);
+      if (fresh && !fresh.failed) return json(fresh);
+      const why = fresh?.failed || 'ה-AI לא הספיק לענות בזמן';
+      if (cached?.ai) return json({ ...cached, draft: true, aiError: why });
+      return json({ ...(await makeProfiles(env, g, players, votes, { noAi: true })), draft: true, aiError: why });
     }
     if (m[2] === '/action' && method === 'POST') {
       const { action, settings, num, name, phone } = await body(req);
