@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Crazy girls – משחק הקליקרים לקבוצות</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Heebo:wght@400;500;700&display=swap">
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --ink: #181B3F; --ink2: #23275a; --pink: #CE63B4; --cyan: #6BF5FA; --purple: #61579F; --lav: #8489CC; --light: #F4F2FF; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: 'Heebo', Arial, sans-serif; color: var(--ink); background: #fff; }
+  .page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1, h2, h3, .brand { font-family: 'Rubik', Arial, sans-serif; }
+
+  /* ===== עמוד 1 ===== */
+  .p1 { background: var(--ink); color: #fff; }
+  .p1 .glow { position: absolute; width: 140mm; height: 140mm; border-radius: 50%; filter: blur(30px); opacity: .45; }
+  .g1 { background: var(--pink); top: -50mm; left: -40mm; }
+  .g2 { background: var(--purple); bottom: -60mm; right: -50mm; }
+  .p1 .inner { position: relative; padding: 16mm 15mm 0; }
+  .kicker { display: inline-block; background: var(--cyan); color: var(--ink); font-weight: 800; font-family: 'Rubik'; border-radius: 99px; padding: 2mm 5mm; font-size: 11pt; }
+  .brand { font-weight: 900; font-size: 58pt; line-height: 1; color: var(--cyan); margin-top: 5mm; letter-spacing: -1px; direction: ltr; text-align: right; text-shadow: 4px 4px 0 var(--pink); }
+  .tag { font-size: 21pt; font-weight: 800; font-family: 'Rubik'; line-height: 1.25; margin-top: 4mm; }
+  .tag em { font-style: normal; color: var(--pink); }
+  .sub { font-size: 12.5pt; color: #d7d6f3; line-height: 1.6; margin-top: 3mm; max-width: 165mm; }
+  .hero { margin: 8mm auto 0; width: 180mm; border-radius: 5mm; border: 1.2mm solid var(--cyan); box-shadow: 5mm 5mm 0 var(--pink); display: block; }
+  .steps { display: flex; gap: 5mm; margin: 11mm 15mm 0; position: relative; }
+  .step { flex: 1; background: rgba(255,255,255,.07); border: .6mm solid rgba(255,255,255,.18); border-radius: 5mm; padding: 5mm; }
+  .step b { display: inline-grid; place-items: center; width: 10mm; height: 10mm; border-radius: 50%; background: var(--pink); color: #fff; font-family: 'Rubik'; font-weight: 900; font-size: 14pt; }
+  .step h3 { font-size: 14pt; margin: 2.5mm 0 1.5mm; }
+  .step p { font-size: 10.5pt; color: #d7d6f3; line-height: 1.5; }
+  .p1 .foot { position: absolute; bottom: 9mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 11pt; color: #bfbde8; }
+  .phonebox { background: var(--cyan); color: var(--ink); font-family: 'Rubik'; font-weight: 900; border-radius: 3mm; padding: 2mm 5mm; font-size: 13pt; }
+
+  /* ===== עמוד 2 ===== */
+  .p2 { background: var(--light); padding: 13mm 15mm 0; }
+  .p2 h2 { font-size: 22pt; font-weight: 900; color: var(--ink); }
+  .p2 h2 span { color: var(--pink); }
+  .feats { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 5mm; }
+  .feat { background: #fff; border-radius: 4mm; padding: 4mm 5mm; border: .5mm solid #dcd8f5; box-shadow: 1.5mm 1.5mm 0 #dcd8f5; }
+  .feat .ic { font-size: 17pt; }
+  .feat h3 { font-size: 12.5pt; margin: 1mm 0 1mm; }
+  .feat p { font-size: 10pt; color: #4d4a6e; line-height: 1.5; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 7mm; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; border-radius: 3mm; border: .8mm solid var(--ink); display: block; }
+  .shots figcaption { font-size: 9.5pt; font-weight: 700; text-align: center; margin-top: 1.2mm; color: var(--purple); }
+  .fit { margin-top: 6mm; background: var(--ink); color: #fff; border-radius: 4mm; padding: 4mm 6mm; display: flex; align-items: center; gap: 4mm; flex-wrap: wrap; }
+  .fit b { font-family: 'Rubik'; font-size: 12pt; color: var(--cyan); }
+  .fit span { background: rgba(255,255,255,.1); border-radius: 99px; padding: 1mm 3.5mm; font-size: 10pt; }
+  .cta { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; background: var(--pink); color: #fff; border-radius: 5mm; padding: 5mm 7mm; display: flex; align-items: center; justify-content: space-between; gap: 5mm; }
+  .cta h3 { font-size: 16pt; font-weight: 900; }
+  .cta p { font-size: 11pt; margin-top: 1mm; }
+  .cta .contact { background: #fff; color: var(--ink); border-radius: 3mm; padding: 3mm 5mm; font-family: 'Rubik'; font-weight: 800; font-size: 12pt; text-align: center; line-height: 1.5; }
+  .ph { color: #c2126a; }
+</style>
+</head>
+<body>
+
+<!-- עמוד 1 -->
+<section class="page p1">
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="inner">
+    <span class="kicker">🎉 משחק קליקרים לקבוצות</span>
+    <div class="brand">Crazy girls</div>
+    <div class="tag">כולן משחקות. כולן צוחקות.<br><em>מכל טלפון – גם כשר.</em></div>
+    <p class="sub">משחק סקר מצחיק על המסך הגדול: "מי הכי…?", כל אחת מצביעה מהטלפון שלה, והתוצאות מתגלות בבת אחת. בלי אפליקציה, בלי אינטרנט בטלפון ובלי הכנות מסובכות.</p>
+  </div>
+  <img class="hero" src="img/06-question.jpg" alt="שאלה על המסך">
+  <div class="steps">
+    <div class="step"><b>1</b><h3>מקבלות קוד</h3><p>קוד כניסה אישי למשחק שלכן – מוכן תוך דקות.</p></div>
+    <div class="step"><b>2</b><h3>מכינות בכמה קליקים</h3><p>שמות המשתתפות, בוחרות שאלות מהמאגר או כותבות משלכן, ושם לאירוע.</p></div>
+    <div class="step"><b>3</b><h3>משחקות!</h3><p>כולן מתקשרות לקו, מקישות מספר וסולמית – והמסך עושה את השאר.</p></div>
+  </div>
+  <div class="foot">
+    <span>☎ הקו להצבעה</span>
+    <span class="phonebox">077-2269931</span>
+  </div>
+</section>
+
+<!-- עמוד 2 -->
+<section class="page p2">
+  <h2>למה <span>כולן</span> אוהבות את זה</h2>
+  <div class="feats">
+    <div class="feat"><div class="ic">📞</div><h3>מכל טלפון, גם כשר</h3><p>מתקשרות למספר אחד ומצביעות בהקשה. בלי אפליקציה, בלי סמארטפון ובלי אינטרנט.</p></div>
+    <div class="feat"><div class="ic">😂</div><h3>שאלות שמוציאות את הצחוק</h3><p>"מי הכי…?" עם שמות המשתתפות. מאגרי שאלות מוכנים – ואפשר להוסיף, לערוך ולהעלות רשימה מוורד.</p></div>
+    <div class="feat"><div class="ic">🏆</div><h3>תחרות אמיתית</h3><p>ניקוד למי שמצביעה כמו הרוב ובונוס למהירות, טבלת מובילות, ומסך ניצחון חגיגי עם קונפטי.</p></div>
+    <div class="feat"><div class="ic">✨</div><h3>"אז מה למדתי עלייך?"</h3><p>בסוף המשחק – כרטיס אישי לכל משתתפת, עם משפט שנון שבינה מלאכותית כותבת לפי מה שהקבוצה בחרה בה.</p></div>
+    <div class="feat"><div class="ic">🎨</div><h3>מותאם לאירוע שלכן</h3><p>שם האירוע על המסך, 5 ערכות צבעים, תצוגה בהירה או כהה, ומנגינת רקע לבחירה.</p></div>
+    <div class="feat"><div class="ic">📄</div><h3>מזכרת לשמור</h3><p>סיכום המשחק בקובץ PDF: מי ניצחה בכל שאלה, הדירוג, והכרטיסים האישיים.</p></div>
+  </div>
+
+  <div class="shots">
+    <figure><img src="img/07-results.jpg" alt="תוצאות"><figcaption>התוצאות מתגלות</figcaption></figure>
+    <figure><img src="img/10-victory.jpg" alt="ניצחון"><figcaption>מסך הניצחון</figcaption></figure>
+  </div>
+
+  <div class="fit">
+    <b>מושלם ל:</b>
+    <span>ימי הולדת</span><span>מסיבות כלה</span><span>מפגשי חברות</span><span>ערבי צוות</span><span>שבתות גיבוש</span><span>בת מצווה</span><span>מפגשי משפחה</span>
+  </div>
+
+  <div class="cta">
+    <div>
+      <h3>רוצות משחק לאירוע הבא?</h3>
+      <p>חבילות: משחק אחד · כמה משחקים · מנוי למפיקות אירועים</p>
+      <p>מחיר: <b class="ph">[₪___]</b></p>
+    </div>
+    <div class="contact">להזמנה ופרטים<br><span class="ph">[טלפון / וואטסאפ]</span></div>
+  </div>
+</section>
+
+</body>
+</html>

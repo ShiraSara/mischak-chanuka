@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;800;900&family=Heebo:wght@500;700&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; }
+  body { background: #181B3F; color: #fff; font-family: 'Heebo', Arial, sans-serif; }
+  .canvas { position: absolute; inset: 0; overflow: hidden; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(40px); opacity: .5; }
+  .g1 { width: 700px; height: 700px; background: #CE63B4; top: -300px; left: -250px; }
+  .g2 { width: 700px; height: 700px; background: #61579F; bottom: -300px; right: -300px; }
+  .wrap { position: relative; padding: 70px 70px 0; text-align: center; }
+  .kicker { display: inline-block; background: #6BF5FA; color: #181B3F; font-family: 'Rubik'; font-weight: 800; font-size: 30px; border-radius: 99px; padding: 8px 28px; }
+  .brand { font-family: 'Rubik'; font-weight: 900; font-size: 128px; line-height: 1; color: #6BF5FA; text-shadow: 7px 7px 0 #CE63B4; margin-top: 22px; direction: ltr; }
+  .tag { font-family: 'Rubik'; font-weight: 800; font-size: 50px; line-height: 1.2; margin-top: 22px; }
+  .tag em { font-style: normal; color: #CE63B4; }
+  .shot { display: block; width: 900px; margin: 40px auto 0; border-radius: 22px; border: 6px solid #6BF5FA; box-shadow: 18px 18px 0 #CE63B4; }
+  .pts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 52px 70px 0; position: relative; }
+  .pts div { background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.18); border-radius: 20px; padding: 16px 22px; font-size: 29px; font-weight: 700; text-align: right; }
+  .cta { position: absolute; bottom: 52px; left: 70px; right: 70px; display: flex; justify-content: space-between; align-items: center; background: #CE63B4; border-radius: 26px; padding: 22px 32px; }
+  .cta b { font-family: 'Rubik'; font-weight: 900; font-size: 38px; }
+  .cta span { background: #fff; color: #c2126a; font-family: 'Rubik'; font-weight: 800; font-size: 30px; border-radius: 16px; padding: 10px 22px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="wrap">
+    <span class="kicker">🎉 משחק קליקרים לקבוצות</span>
+    <div class="brand">Crazy girls</div>
+    <div class="tag">כולן משחקות. כולן צוחקות.<br><em>מכל טלפון – גם כשר.</em></div>
+    <img class="shot" src="img/07-results.jpg" alt="">
+  </div>
+  <div class="pts">
+    <div>📞 בלי אפליקציה ובלי אינטרנט</div>
+    <div>😂 שאלות "מי הכי…?" מצחיקות</div>
+    <div>🏆 ניקוד ומסך ניצחון חגיגי</div>
+    <div>✨ משפט אישי לכל אחת מ-AI</div>
+  </div>
+  <div class="cta"><b>רוצות משחק לאירוע הבא?</b><span>[טלפון / וואטסאפ]</span></div>
+</div>
+</body>
+</html>
