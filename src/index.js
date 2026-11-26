@@ -11,7 +11,7 @@ const maxPlayersOf = (c) => Math.min(HARD_MAX_PLAYERS, Math.max(2, Number(c?.max
 // טלפון שמחכה להקשה פונה לשרת לפחות כל READ_SEC שניות; בלי פנייה דקה – כנראה ניתק
 const CONNECTED_MS = 60 * 1000;
 const MAX_EXTRA = 5; // תשובות נוספות לשאלת שמות
-const READ_SEC = 20;
+const READ_SEC = 30;
 const REVEAL_MS = 2400; // זמן אנימציית הווילון – הטיימר מתחיל אחריו
 const TOPIC_REVEAL_MS = 1600; // תוספת כשמוצג מסך "נושא חדש"
 // זמן עד שהשאלה נחשפת (ארוך יותר כשמתחיל נושא חדש)
@@ -522,9 +522,15 @@ function msgCmd(messages) {
 }
 
 const HANGUP = 'go_to_folder=hangup';
-// "הודעה" שקטה בזמן ההמתנה להקשה: קובץ שקט קצר (000.wav) שהועלה לשלוחה.
-// (טקסט ריק "t-" גרם למערכת להכריז "שגיאה" בכל סבב המתנה)
-const SILENT = 'f-000';
+// מה הקו אומר בזמן ההמתנה להקשה (כל READ_SEC שניות בלי הקשה).
+// טקסט ריק או קובץ שלא קיים גורמים למערכת להכריז "שגיאה" – לכן משפט קצר לפי שלב המשחק.
+// אם יועלה לשלוחה קובץ שקט, אפשר להגדיר ב-Cloudflare משתנה YEMOT_SILENT_FILE (למשל 000) – ואז יהיה שקט מוחלט.
+function waitPrompt(env, g) {
+  if (env.YEMOT_SILENT_FILE) return 'f-' + String(env.YEMOT_SILENT_FILE).replace(/[^\w-]/g, '');
+  if (g.phase === 'lobby') return tts('המשחק יתחיל בקרוב');
+  if (g.phase === 'question') return tts('הקישי מספר ואחריו סולמית');
+  return tts('המתיני לשאלה הבאה');
+}
 
 export async function handleYemot(env, params) {
   if (params.hangup === 'yes') {
@@ -618,7 +624,7 @@ async function playTurn(env, call, value) {
       }
     }
   }
-  return await ask(env, call, say.length ? say : [SILENT]);
+  return await ask(env, call, say.length ? say : [waitPrompt(env, g)]);
 }
 
 async function yemotParams(req) {
