@@ -60,7 +60,7 @@ class Music {
 
   // סגנון מובנה, או מנגינה שהועלתה: 'track:<id>'
   setStyle(s) {
-    if (!(MUSIC_STYLES.some((x) => x.id === s) || String(s).startsWith('track:')) || s === this.style) return;
+    if (!(MUSIC_STYLES.some((x) => x.id === s) || String(s).startsWith('track:')) || s === this.style || s === this.failedTrack) return;
     this.style = s;
     if (this.mode !== 'off') this.syncTrack();
   }
@@ -81,6 +81,13 @@ class Music {
       this.audio = new Audio();
       this.audio.loop = true;
       this.audio.preload = 'auto';
+      // הקובץ לא נטען (למשל סינון אינטרנט שחוסם קבצי שמע) – עוברים למנגינה מובנית, שלא צריכה קבצים
+      this.audio.addEventListener('error', () => {
+        if (!this.isTrack) return;
+        this.failedTrack = this.style;
+        this.style = 'quiz';
+        if (this.mode !== 'off') this.setMode(this.mode, true);
+      });
       // קבצים מוקלטים חזקים יותר מהצלילים המובנים – מנמיכים קצת כדי שיתאזנו
       const g = this.ctx.createGain();
       g.gain.value = 0.45;
