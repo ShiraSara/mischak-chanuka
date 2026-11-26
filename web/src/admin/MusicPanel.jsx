@@ -69,7 +69,13 @@ export default function MusicPanel({ pw }) {
             <span className="ic">🎶</span>
             <input type="text" defaultValue={t.name} onBlur={(e) => rename(t, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
             <span className="muted">{mb(t.size)}</span>
-            <audio controls preload="none" src={'/music/' + t.id} />
+            <audio
+              controls
+              preload="none"
+              src={'/music/' + t.id}
+              onPlay={() => setErr('')}
+              onError={(e) => setErr(`הדפדפן לא הצליח לנגן את "${t.name}" (קוד ${e.currentTarget.error?.code ?? '?'}). נסי לרענן עם Ctrl+F5 או בדפדפן אחר.`)}
+            />
             {ask === t.id ? (
               <span className="bp-confirm">
                 למחוק?
