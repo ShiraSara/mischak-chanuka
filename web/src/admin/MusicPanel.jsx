@@ -71,7 +71,7 @@ export default function MusicPanel({ pw }) {
             <span className="muted">{mb(t.size)}</span>
             <audio
               controls
-              preload="none"
+              preload="metadata"
               src={'/music/' + t.id}
               onPlay={() => setErr('')}
               onError={(e) => setErr(`הדפדפן לא הצליח לנגן את "${t.name}" (קוד ${e.currentTarget.error?.code ?? '?'}). נסי לרענן עם Ctrl+F5 או בדפדפן אחר.`)}

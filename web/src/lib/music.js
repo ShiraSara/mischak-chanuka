@@ -87,7 +87,8 @@ class Music {
       this.ctx.createMediaElementSource(this.audio).connect(g).connect(this.bus);
     }
     if (!this.audio.src.endsWith(src)) this.audio.src = src;
-    this.audio.play().catch(() => {});
+    // אם הדפדפן חסם (עוד לא לחצו על הדף) – מנסים שוב בלחיצה הבאה
+    this.audio.play().catch(() => document.addEventListener('pointerdown', () => this.syncTrack(), { once: true }));
   }
 
   setTension(t) {
@@ -300,5 +301,7 @@ class Music {
 }
 
 export const music = new Music();
+// לבדיקות: מצב המנגינה זמין מהקונסול
+if (typeof window !== "undefined") window.__crazyMusic = music;
 // לבדיקות
 if (typeof window !== 'undefined') window.__sekerMusic = music;
