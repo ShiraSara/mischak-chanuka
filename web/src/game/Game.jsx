@@ -137,17 +137,21 @@ export default function Game({ gameId, me, onExit }) {
   if (state && sceneOf(state) === shownScene) snapRef.current = state;
   const view = shownScene && shownScene !== 'lobby' ? snapRef.current : null;
   const transitioning = !!state && sceneOf(state) !== shownScene; // הווילון באמצע מעבר לסצנה הבאה
-  // כתיבה מראש של "מה למדתי עלייך?": ברגע שמוצגות התוצאות של השאלה האחרונה,
-  // שולחים ל-AI ברקע – כך שבמסך הסיום הכרטיסים כבר מוכנים
-  const prefetched = useRef(false);
+  // כתיבה מראש של "מה למדתי עלייך?" ברקע, כדי שבסוף זה יהיה מוכן מיד:
+  // טיוטה בתוצאות של השאלה השלישית מהסוף, גרסה סופית בתוצאות של השאלה האחרונה, ושוב אם סיימו מוקדם
+  const prefetched = useRef(new Set());
   useEffect(() => {
     const g = state?.game;
-    if (!g || prefetched.current || g.settings.profiles === false) return;
-    if (g.phase === 'results' && g.qIndex === g.total - 1) {
-      prefetched.current = true;
-      api(`/api/games/${gameId}/profiles`, { method: 'POST', body: {} }).catch(() => (prefetched.current = false));
-    }
+    if (!g || g.settings.profiles === false) return;
+    let key = null;
+    if (g.phase === 'results' && g.total >= 4 && g.qIndex === g.total - 3) key = 'draft';
+    if (g.phase === 'results' && g.qIndex === g.total - 1) key = 'last';
+    if (g.phase === 'ended') key = 'ended';
+    if (!key || prefetched.current.has(key)) return;
+    prefetched.current.add(key);
+    api(`/api/games/${gameId}/profiles`, { method: 'POST', body: { prefetch: true } }).catch(() => prefetched.current.delete(key));
   }, [state, gameId]);
+
   const allConnected = !!state?.players.length && state.players.every((p) => p.connected);
   const audio = useGameAudio({ view, upcoming: state, shownScene, curtainClosed: curtain.closed, transitioning, clockOffset });
 

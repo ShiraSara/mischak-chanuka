@@ -6,7 +6,11 @@ import { makeProfiles } from './profiles.js';
 import { publicTracks, serveTrack, adminMusic } from './music.js';
 
 const MAX_PLAYERS = 15; // ברירת המחדל למספר משתתפות במשחק (ולתשובות קבועות בשאלה)
-const HARD_MAX_PLAYERS = 50; // הכי הרבה שאפשר להגדיר לקוד
+const HARD_MAX_PLAYERS = 50;
+// כרטיסי ה-AI: כתיבות שרצות עכשיו (לפי משחק), וכמה זמן מחכים להן בלחיצה
+const PROFILE_JOBS = new Map();
+const PROFILE_WAIT_MS = 3500;
+const HARD_MAX_PLAYERS_NOTE = 0; // הכי הרבה שאפשר להגדיר לקוד
 const maxPlayersOf = (c) => Math.min(HARD_MAX_PLAYERS, Math.max(2, Number(c?.max_players) || MAX_PLAYERS));
 // טלפון שמחכה להקשה פונה לשרת לפחות כל READ_SEC שניות; בלי פנייה דקה – כנראה ניתק
 const CONNECTED_MS = 60 * 1000;
@@ -642,7 +646,7 @@ async function yemotParams(req) {
 
 // ---------- ניתוב ----------
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const path = url.pathname;
     const method = req.method;
@@ -684,7 +688,7 @@ export default {
       if (path.startsWith('/api/')) {
         const c = await hostAuth(req, env);
         if (!c) return err('צריך להיכנס מחדש עם קוד', 401);
-        return await hostRoutes(req, env, path, method, c);
+        return await hostRoutes(req, env, path, method, c, ctx);
       }
 
       return serveAsset(path);
@@ -696,7 +700,7 @@ export default {
   },
 };
 
-async function hostRoutes(req, env, path, method, c) {
+async function hostRoutes(req, env, path, method, c, ctx) {
   const url = new URL(req.url);
   if (path === '/api/me') {
     return json({
@@ -823,18 +827,37 @@ async function hostRoutes(req, env, path, method, c) {
     if (!g || g.code !== c.code) return err('המשחק לא נמצא', 404);
     if (!m[2] && method === 'GET') return json(await gameState(env, g));
     // "מי את בעצם?" – נוצר פעם אחת ונשמר (אפשר לבקש מחדש)
+    // "אז מה למדתי עלייך?" – נכתב מראש במהלך המשחק (prefetch), ובלחיצה מוצג תוך שניות
     if (m[2] === '/profiles' && method === 'POST') {
-      const { regenerate } = await body(req);
+      const { regenerate, prefetch } = await body(req);
       const players = await loadPlayers(env, g.id);
       const { results: votes } = await env.DB.prepare('SELECT q_index, num, choice FROM votes WHERE game_id = ?').bind(g.id).all();
-      // "חתימה" של ההצבעות – אם מישהי שינתה הצבעה אחרי שהכרטיסים נכתבו מראש, כותבים מחדש
+      // "חתימה" של ההצבעות – אם השתנו מאז שהכרטיסים נכתבו, כותבים מחדש
       const sig = `${votes.length}:${votes.reduce((t, v) => t + (v.q_index + 1) * 131 + v.num * 17 + v.choice, 0)}`;
       const cached = g.profiles ? JSON.parse(g.profiles) : null;
-      if (cached && !regenerate && cached.ai && (!cached.sig || cached.sig === sig)) return json(cached);
-      const out = { ...(await makeProfiles(env, g, players, votes)), sig };
-      // שומרים רק תוצאה של AI; אם נפל – ננסה שוב בפעם הבאה
-      if (out.ai) await env.DB.prepare('UPDATE games SET profiles = ? WHERE id = ?').bind(JSON.stringify(out), g.id).run();
-      return json(out);
+      if (cached?.ai && !regenerate && cached.sig === sig) return json(cached);
+
+      // כתיבה אחת בכל פעם לכל משחק (אם כבר כותבים לאותה חתימה – מצטרפים אליה)
+      let job = PROFILE_JOBS.get(g.id);
+      if (!job || job.sig !== sig) {
+        const promise = makeProfiles(env, g, players, votes)
+          .then(async (r) => {
+            const out = { ...r, sig };
+            if (out.ai) await env.DB.prepare('UPDATE games SET profiles = ? WHERE id = ?').bind(JSON.stringify(out), g.id).run();
+            return out;
+          })
+          .finally(() => PROFILE_JOBS.get(g.id)?.promise === promise && PROFILE_JOBS.delete(g.id));
+        job = { sig, promise };
+        PROFILE_JOBS.set(g.id, job);
+      }
+      ctx?.waitUntil(job.promise.catch(() => {})); // ממשיך לכתוב גם אחרי שהתשובה נשלחה
+      if (prefetch) return json({ queued: true });
+
+      // מחכים עד PROFILE_WAIT_MS לגרסה המעודכנת; אחרת – הטיוטה האחרונה, ואם אין – משפטי גיבוי
+      const fresh = await Promise.race([job.promise.catch(() => null), new Promise((r) => setTimeout(() => r(null), PROFILE_WAIT_MS))]);
+      if (fresh) return json(fresh);
+      if (cached?.ai) return json({ ...cached, draft: true });
+      return json({ ...(await makeProfiles(env, g, players, votes, { noAi: true })), draft: true });
     }
     if (m[2] === '/action' && method === 'POST') {
       const { action, settings, num, name, phone } = await body(req);

@@ -107,13 +107,15 @@ export class AiError extends Error {}
 export const aiEnabled = (env) => !!env.GEMINI_API_KEY;
 
 // קריאה כללית ל-Gemini שמחזירה JSON לפי סכמה – עם ניסיונות חוזרים ודגמים חלופיים כשיש עומס
-export async function generateJson(env, { parts, system, schema, maxOutputTokens = 8192, what = 'להשלים את הבקשה' }) {
+export async function generateJson(env, { parts, system, schema, maxOutputTokens = 8192, what = 'להשלים את הבקשה', fast = false }) {
   if (!aiEnabled(env)) throw new AiError('ה-AI לא הופעל באתר (חסר מפתח Gemini)');
   const ai = new GoogleGenAI({
     apiKey: env.GEMINI_API_KEY,
     ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}),
   });
   const config = { systemInstruction: system, responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens };
+  // fast: בלי "חשיבה" לפני התשובה – הרבה יותר מהיר, ומספיק למשפטים קצרים
+  if (fast) config.thinkingConfig = { thinkingBudget: 0 };
   const models = await chooseModels(ai, env);
   if (!models.length) throw new AiError('לא נמצא דגם Gemini זמין למפתח הזה – צריך לבדוק את המפתח ב-AI Studio');
 
@@ -135,6 +137,12 @@ export async function generateJson(env, { parts, system, schema, maxOutputTokens
           markBusy(model);
         }
         if (error.status === 404) continue outer; // דגם שלא זמין בחשבון – לחלופי
+        // דגם שלא מאפשר לכבות "חשיבה" – מנסים אותו שוב בלי ההגדרה
+        if (error.status === 400 && config.thinkingConfig && /think/i.test(error.message)) {
+          delete config.thinkingConfig;
+          attempt--;
+          continue;
+        }
         if (!busy) break outer;
         if (attempt < ATTEMPTS_PER_MODEL) await new Promise((r) => setTimeout(r, 800));
       }

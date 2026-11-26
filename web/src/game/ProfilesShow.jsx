@@ -13,9 +13,19 @@ export default function ProfilesShow({ gameId, onPdf, soundOn, onClose }) {
   const [auto, setAuto] = useState(true);
 
   useEffect(() => {
-    api(`/api/games/${gameId}/profiles`, { method: 'POST', body: {} })
-      .then(setData)
-      .catch((e) => setError(e.message));
+    let alive = true;
+    const load = () => api(`/api/games/${gameId}/profiles`, { method: 'POST', body: {} });
+    load()
+      .then((d) => {
+        if (!alive) return;
+        setData(d);
+        // הוצגה טיוטה – הגרסה המעודכנת עוד נכתבת ברקע; מחליפים בשקט כשהיא מוכנה
+        if (d.draft) setTimeout(() => load().then((x) => alive && !x.draft && setData(x)).catch(() => {}), 7000);
+      })
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
+    };
   }, [gameId]);
 
   const list = data?.profiles || [];

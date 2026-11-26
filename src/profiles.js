@@ -63,20 +63,33 @@ const SCHEMA = {
   required: ['profiles'],
 };
 
-export async function makeProfiles(env, game, players, votes) {
+const CHUNK = 8; // עד 8 משתתפות בבקשה (15 משתתפות = 2 בקשות במקביל)
+
+export async function makeProfiles(env, game, players, votes, { noAi = false } = {}) {
   const facts = buildFacts(game, players, votes);
   let ai = null;
   let aiError = null;
-  try {
+  if (!noAi) try {
     const data = facts.map(({ num, name, titles, mentions }) => ({ num, name, titles, mentions }));
-    const r = await generateJson(env, {
-      parts: [{ text: `${game.settings.title ? `שם המשחק: ${game.settings.title}\n` : ''}המשתתפות:\n${JSON.stringify(data)}` }],
-      system: SYSTEM,
-      schema: SCHEMA,
-      maxOutputTokens: 4096,
-      what: 'לכתוב את הסיכומים',
-    });
-    ai = new Map((r.profiles || []).map((p) => [Number(p.num), String(p.sentence || '').trim().slice(0, 220)]));
+    // קבוצות קטנות במקביל – כל בקשה קצרה יותר, וכולן חוזרות בערך באותו זמן
+    const groups = [];
+    for (let i = 0; i < data.length; i += CHUNK) groups.push(data.slice(i, i + CHUNK));
+    const head = game.settings.title ? `שם המשחק: ${game.settings.title}\n` : '';
+    const settled = await Promise.allSettled(
+      groups.map((g) =>
+        generateJson(env, {
+          parts: [{ text: `${head}המשתתפות:\n${JSON.stringify(g)}` }],
+          system: SYSTEM,
+          schema: SCHEMA,
+          maxOutputTokens: 1500,
+          fast: true,
+          what: 'לכתוב את הסיכומים',
+        })
+      )
+    );
+    const results = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+    if (!results.length) throw settled[0].reason; // כל הקבוצות נכשלו
+    ai = new Map(results.flatMap((r) => r.profiles || []).map((p) => [Number(p.num), String(p.sentence || '').trim().slice(0, 220)]));
   } catch (e) {
     if (!(e instanceof AiError)) throw e;
     aiError = e.message;
